@@ -18,6 +18,10 @@ public interface RoundDao {
 
     Optional<Round> findByTournamentAndNumber(Connection connection, long tournamentId, int roundNumber);
 
+    Optional<Round> findById(long roundId);
+
+    Optional<Round> findById(Connection connection, long roundId);
+
     List<Round> findByTournament(long tournamentId);
 
     List<Round> findByTournament(Connection connection, long tournamentId);

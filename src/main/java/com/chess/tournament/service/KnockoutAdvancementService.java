@@ -9,6 +9,7 @@ import com.chess.tournament.exception.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +38,34 @@ public final class KnockoutAdvancementService {
      */
     public List<Long> markLosers(List<Game> completedRoundGames) {
         Objects.requireNonNull(completedRoundGames, "completedRoundGames");
+        List<Long> losers = collectLoserIds(completedRoundGames);
+        if (losers.isEmpty()) {
+            return List.of();
+        }
+        unitOfWork.executeInTransaction(connection -> {
+            markLosers(connection, completedRoundGames);
+            return null;
+        });
+        return List.copyOf(losers);
+    }
+
+    /**
+     * Marks losers using an existing transaction connection (used by {@link ResultService#completeRound}).
+     */
+    public List<Long> markLosers(Connection connection, List<Game> completedRoundGames) {
+        Objects.requireNonNull(completedRoundGames, "completedRoundGames");
+        List<Long> losers = collectLoserIds(completedRoundGames);
+        for (Long loserId : losers) {
+            tournamentPlayerDao.updateQualification(
+                    connection, loserId, QualificationStatus.ELIMINATED);
+        }
+        if (!losers.isEmpty()) {
+            log.info("Marked {} knockout losers as ELIMINATED", losers.size());
+        }
+        return List.copyOf(losers);
+    }
+
+    private static List<Long> collectLoserIds(List<Game> completedRoundGames) {
         List<Long> losers = new ArrayList<>();
         for (Game game : completedRoundGames) {
             Long loserId = loserTpId(game);
@@ -44,18 +73,7 @@ public final class KnockoutAdvancementService {
                 losers.add(loserId);
             }
         }
-        if (losers.isEmpty()) {
-            return List.of();
-        }
-        unitOfWork.executeInTransaction(connection -> {
-            for (Long loserId : losers) {
-                tournamentPlayerDao.updateQualification(
-                        connection, loserId, QualificationStatus.ELIMINATED);
-            }
-            return null;
-        });
-        log.info("Marked {} knockout losers as ELIMINATED", losers.size());
-        return List.copyOf(losers);
+        return losers;
     }
 
     static Long loserTpId(Game game) {

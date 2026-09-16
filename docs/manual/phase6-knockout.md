@@ -13,7 +13,7 @@
 4. **Generate & Publish** → 4 boards, all `PENDING`, no byes.
 5. Create KO for **6 players**, rounds **3**; publish round 1 → 2 real games + 2 `BYE` rows (lowest-rated get byes).
 6. Bracket table groups by round; Winner column shows placeholder until Phase 8.
-7. Round Robin still uses the pairings dialog; Swiss generate remains disabled (Phase 7).
+7. Round Robin and Swiss use the pairings dialog; Knockout uses the bracket view.
 
 ## SRS coverage
 

@@ -17,20 +17,28 @@ public final class TournamentViewModel {
     private final int enrolledCount;
     private final Optional<Round> round1;
     private final Optional<Round> pairableRound;
+    private final Optional<Round> resultsRound;
     private final boolean enrollmentLocked;
 
     public TournamentViewModel(Tournament tournament, int enrolledCount,
                                Optional<Round> round1, boolean enrollmentLocked) {
-        this(tournament, enrolledCount, round1, Optional.empty(), enrollmentLocked);
+        this(tournament, enrolledCount, round1, Optional.empty(), Optional.empty(), enrollmentLocked);
     }
 
     public TournamentViewModel(Tournament tournament, int enrolledCount,
                                Optional<Round> round1, Optional<Round> pairableRound,
                                boolean enrollmentLocked) {
+        this(tournament, enrolledCount, round1, pairableRound, Optional.empty(), enrollmentLocked);
+    }
+
+    public TournamentViewModel(Tournament tournament, int enrolledCount,
+                               Optional<Round> round1, Optional<Round> pairableRound,
+                               Optional<Round> resultsRound, boolean enrollmentLocked) {
         this.tournament = tournament;
         this.enrolledCount = enrolledCount;
         this.round1 = round1;
         this.pairableRound = pairableRound;
+        this.resultsRound = resultsRound;
         this.enrollmentLocked = enrollmentLocked;
     }
 
@@ -48,6 +56,10 @@ public final class TournamentViewModel {
 
     public Optional<Round> getPairableRound() {
         return pairableRound;
+    }
+
+    public Optional<Round> getResultsRound() {
+        return resultsRound;
     }
 
     public boolean isEnrollmentLocked() {
@@ -74,10 +86,6 @@ public final class TournamentViewModel {
         if (tournament.getStatus() != TournamentStatus.ACTIVE) {
             return false;
         }
-        // Phase 5–6: Round Robin and Knockout; Swiss unlocks in Phase 7
-        if (tournament.getType() == TournamentType.SWISS) {
-            return false;
-        }
         if (pairableRound.isPresent()) {
             return pairableRound.get().getStatus() == RoundStatus.PENDING_PAIRINGS;
         }
@@ -90,11 +98,11 @@ public final class TournamentViewModel {
     }
 
     public boolean canEnterResults() {
-        return false; // Phase 8
+        return tournament.getStatus() == TournamentStatus.ACTIVE && resultsRound.isPresent();
     }
 
     public boolean canCompleteRound() {
-        return false; // Phase 8
+        return canEnterResults();
     }
 
     public boolean canFinalize() {
@@ -107,6 +115,10 @@ public final class TournamentViewModel {
     }
 
     public String getCurrentRoundLabel() {
+        if (resultsRound.isPresent()) {
+            Round r = resultsRound.get();
+            return "Round " + r.getRoundNumber() + " (" + r.getStatus() + ")";
+        }
         if (pairableRound.isPresent()) {
             Round r = pairableRound.get();
             return "Round " + r.getRoundNumber() + " (" + r.getStatus() + ")";

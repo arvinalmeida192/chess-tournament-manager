@@ -24,9 +24,9 @@
 
 | Field | Value |
 |-------|--------|
-| **Last completed phase** | **Phase 6 — Knockout Pairings & Elimination** |
-| **Next phase to execute** | **Phase 7 — Swiss/Dutch Pairings** |
-| **Build health** | `mvn test` passes (84 tests); Testcontainers PostgreSQL 16 |
+| **Last completed phase** | **Phase 8 — Results, Scoring & Elo Ratings** |
+| **Next phase to execute** | **Phase 9 — Leaderboards & Qualification** |
+| **Build health** | `mvn test` passes (113 tests); Testcontainers PostgreSQL 16 |
 | **DB for local dev** | Docker container `ctms-postgres` (Postgres 16), port `5432` |
 | **DB credentials** | user `ctms` / password `changeme` / db `chess_tournament` (see `config/application.properties.example`) |
 
@@ -42,10 +42,96 @@
 | 4 | Tournaments & enrollment | **DONE** |
 | 5 | Round Robin pairings | **DONE** |
 | 6 | Knockout pairings & elimination | **DONE** |
-| 7 | Swiss/Dutch pairings | **NOT STARTED** |
-| 8 | Results, scoring & Elo ratings | **NOT STARTED** |
+| 7 | Swiss/Dutch pairings | **DONE** |
+| 8 | Results, scoring & Elo ratings | **DONE** |
 | 9 | Leaderboards & qualification | **NOT STARTED** |
 | 10 | End-to-end UI & release hardening | **NOT STARTED** |
+
+---
+
+## What Phase 8 delivered (DONE)
+
+### Files created
+
+```text
+src/main/java/com/chess/tournament/service/RatingService.java
+src/main/java/com/chess/tournament/service/ResultService.java
+src/main/java/com/chess/tournament/ui/tournament/ResultsController.java
+src/main/resources/fxml/results.fxml
+src/test/java/.../service/RatingServiceTest.java
+src/test/java/.../integration/ResultServiceIntegrationTest.java
+docs/manual/phase8-results.md
+```
+
+### Files updated
+
+```text
+GameDao / JdbcGameDao               ← findById
+RoundDao / JdbcRoundDao             ← findById
+KnockoutAdvancementService          ← markLosers(Connection, …) for completeRound tx
+AppContext                          ← RatingService + ResultService
+TournamentViewModel / Dashboard     ← Enter Results button
+README.md, context.md, phase7 manual
+```
+
+### Behaviors verified
+
+- [x] RatingService Elo K=32; equal draw → 0; equal win → ±16
+- [x] saveGameResult incremental; sets round IN_PROGRESS; blocks after later round published
+- [x] completeRound applies points/W-D-L, Elo snapshot ratings, bye without rating
+- [x] completeRound transactional rollback on mid-round failure
+- [x] Knockout completeRound marks losers ELIMINATED
+- [x] Results UI: ComboBox results, Save All, Complete Round
+- [x] `mvn test` — 113 tests pass
+
+### Design notes from Phase 8 (keep)
+
+- Points and Elo apply only on **completeRound**, not on incremental save.
+- Rating snapshot is taken once at completeRound start (BR-RAT-003).
+- Knockout rejects DRAW on save and complete.
+
+---
+
+## What Phase 7 delivered (DONE)
+
+### Files created
+
+```text
+src/main/java/com/chess/tournament/service/pairing/
+  SwissPairingStrategy.java, SwissScoreGroupBuilder.java, SwissColorAssigner.java
+src/test/java/.../service/pairing/SwissPairingStrategyTest.java
+src/test/java/.../integration/SwissPairingIntegrationTest.java
+docs/manual/phase7-swiss.md
+```
+
+### Files updated
+
+```text
+PairingProposal                     ← rematch flag
+PairingContext                      ← previousByeRecipients
+PairingService                      ← bye history + Swiss color_balance on publish
+PairingStrategyFactory              ← registers SwissPairingStrategy
+TournamentViewModel / PairingsController  ← enable SWISS generate
+Knockout/RR PairingContext call sites
+README.md, context.md, phase5/6 manuals
+```
+
+### Behaviors verified
+
+- [x] Round 1 RANDOM deterministic via `Random(tournamentId)`
+- [x] Round 1 RATING_SPLIT top-half vs bottom-half; odd → bye
+- [x] Round >1 score groups + Dutch greedy pairing; rematch avoided when possible
+- [x] Forced rematch sets `rematch=true`
+- [x] Bye prefers never-had-bye, then lowest score / rating
+- [x] Publish updates `color_balance` (+1 white, −1 black)
+- [x] Dashboard Generate Pairings works for SWISS (same pairings dialog)
+- [x] `mvn test` — 102 tests pass
+
+### Design notes from Phase 7 (keep)
+
+- Color balance is updated at **publish** for Swiss only; RR/KO leave balance at 0 until Phase 8 if needed.
+- Round >1 still requires previous round `COMPLETED` (use Phase 8 ResultService / Enter Results UI).
+- Floaters: odd score-group working sets push lowest-rated player to the next lower group.
 
 ---
 
@@ -136,7 +222,7 @@ README.md, context.md, phase4 manual checklist
 
 - Players ordered by tournament_player.id (enrollment order) for deterministic schedule.
 - Colors alternate by round (odd: left-half white; even: swapped).
-- ROUND_ROBIN and KNOCKOUT registered in PairingStrategyFactory; Swiss arrives in Phase 7.
+- ROUND_ROBIN, KNOCKOUT, and SWISS registered in PairingStrategyFactory.
 - Subsequent rounds after R1 need previous COMPLETED (Phase 8 will complete rounds in UI).
 
 ---

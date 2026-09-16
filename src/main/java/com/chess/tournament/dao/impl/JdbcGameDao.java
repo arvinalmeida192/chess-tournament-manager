@@ -15,6 +15,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static com.chess.tournament.dao.JdbcSupport.wrap;
@@ -25,6 +26,12 @@ public final class JdbcGameDao implements GameDao {
             INSERT INTO game (round_id, board_number, white_tournament_player_id, black_tournament_player_id,
                               result, white_score, black_score, rematch, white_rating_delta, black_rating_delta)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+
+    private static final String SELECT_BY_ID = """
+            SELECT id, round_id, board_number, white_tournament_player_id, black_tournament_player_id,
+                   result, white_score, black_score, rematch, white_rating_delta, black_rating_delta
+            FROM game WHERE id = ?
             """;
 
     private static final String SELECT_BY_ROUND = """
@@ -109,6 +116,26 @@ public final class JdbcGameDao implements GameDao {
             }
         } catch (SQLException e) {
             throw wrap("Failed to find games by round", e);
+        }
+    }
+
+    @Override
+    public Optional<Game> findById(long gameId) {
+        return JdbcSupport.withConnection(conn -> findById(conn, gameId), dataSource, "Failed to find game");
+    }
+
+    @Override
+    public Optional<Game> findById(Connection connection, long gameId) {
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID)) {
+            ps.setLong(1, gameId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw wrap("Failed to find game by id", e);
         }
     }
 

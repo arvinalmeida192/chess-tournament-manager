@@ -72,6 +72,6 @@ class RoundRobinPairingStrategyTest {
             tp.setPlayerId(100 + i);
             players.add(tp);
         }
-        return new PairingContext(tournament, round, players, Set.of(), List.of(), List.of());
+        return new PairingContext(tournament, round, players, Set.of(), List.of(), List.of(), Set.of());
     }
 }

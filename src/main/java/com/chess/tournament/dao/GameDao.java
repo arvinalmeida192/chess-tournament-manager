@@ -5,6 +5,7 @@ import com.chess.tournament.domain.LongPair;
 
 import java.sql.Connection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface GameDao {
@@ -16,6 +17,10 @@ public interface GameDao {
     List<Game> findByRound(long roundId);
 
     List<Game> findByRound(Connection connection, long roundId);
+
+    Optional<Game> findById(long gameId);
+
+    Optional<Game> findById(Connection connection, long gameId);
 
     void updateResult(Game game);
 

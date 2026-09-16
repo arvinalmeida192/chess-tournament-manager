@@ -41,6 +41,7 @@
                 <Button fx:id="enrollButton" text="Manage Enrollment" onAction="#onEnrollment"/>
                 <Button fx:id="startButton" text="Start Tournament" onAction="#onStart"/>
                 <Button fx:id="pairingsButton" text="Generate Pairings" onAction="#onPairings"/>
+                <Button fx:id="resultsButton" text="Enter Results" onAction="#onResults"/>
                 <Button fx:id="leaderboardButton" text="Leaderboard" onAction="#onLeaderboard"/>
                 <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
             </HBox>

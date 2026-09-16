@@ -14,6 +14,7 @@ import java.util.Set;
  *
  * @param previousRoundGames games from round {@code roundNumber - 1} (empty for round 1);
  *                           required for knockout advancement pairing
+ * @param previousByeRecipients tournament-player ids that already received a bye (Swiss)
  */
 public record PairingContext(
         Tournament tournament,
@@ -21,7 +22,8 @@ public record PairingContext(
         List<TournamentPlayer> players,
         Set<LongPair> previousPairings,
         List<Game> currentRoundGames,
-        List<Game> previousRoundGames
+        List<Game> previousRoundGames,
+        Set<Long> previousByeRecipients
 ) {
     public PairingContext {
         Objects.requireNonNull(tournament, "tournament");
@@ -29,6 +31,7 @@ public record PairingContext(
         Objects.requireNonNull(previousPairings, "previousPairings");
         Objects.requireNonNull(currentRoundGames, "currentRoundGames");
         Objects.requireNonNull(previousRoundGames, "previousRoundGames");
+        Objects.requireNonNull(previousByeRecipients, "previousByeRecipients");
         if (roundNumber < 1) {
             throw new IllegalArgumentException("roundNumber must be >= 1");
         }
@@ -36,12 +39,14 @@ public record PairingContext(
         previousPairings = Set.copyOf(previousPairings);
         currentRoundGames = List.copyOf(currentRoundGames);
         previousRoundGames = List.copyOf(previousRoundGames);
+        previousByeRecipients = Set.copyOf(previousByeRecipients);
     }
 
-    /** Convenience for strategies that do not need prior-round games. */
+    /** Convenience for strategies that do not need prior-round games or bye history. */
     public static PairingContext withoutPrevious(Tournament tournament, int roundNumber,
                                                  List<TournamentPlayer> players,
                                                  Set<LongPair> previousPairings) {
-        return new PairingContext(tournament, roundNumber, players, previousPairings, List.of(), List.of());
+        return new PairingContext(tournament, roundNumber, players, previousPairings,
+                List.of(), List.of(), Set.of());
     }
 }

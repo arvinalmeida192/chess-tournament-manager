@@ -91,12 +91,39 @@ public final class PairingService {
         unitOfWork.executeInTransaction(connection -> {
             List<Game> games = toGames(loaded.round().getId(), proposals);
             gameDao.insertBatch(connection, games);
+            if (loaded.tournament().getType() == TournamentType.SWISS) {
+                applySwissColorBalance(connection, loaded.players(), proposals);
+            }
             roundDao.updateStatus(connection, loaded.round().getId(),
                     RoundStatus.PAIRINGS_PUBLISHED, pairedAt, null);
             return null;
         });
         log.info("Published {} pairings for tournament {} round {}",
                 proposals.size(), tournamentId, roundNumber);
+    }
+
+    /**
+     * Swiss: +1 color_balance for white, -1 for black at publish time (Phase 7).
+     */
+    private void applySwissColorBalance(java.sql.Connection connection,
+                                        List<TournamentPlayer> players,
+                                        List<PairingProposal> proposals) {
+        java.util.Map<Long, TournamentPlayer> byId = players.stream()
+                .collect(Collectors.toMap(TournamentPlayer::getId, tp -> tp));
+        for (PairingProposal p : proposals) {
+            if (p.bye()) {
+                continue;
+            }
+            TournamentPlayer white = byId.get(p.whiteTpId());
+            TournamentPlayer black = byId.get(p.blackTpId());
+            if (white == null || black == null) {
+                throw new ValidationException("Missing tournament player for color balance update");
+            }
+            white.setColorBalance(white.getColorBalance() + 1);
+            black.setColorBalance(black.getColorBalance() - 1);
+            tournamentPlayerDao.updateStats(connection, white);
+            tournamentPlayerDao.updateStats(connection, black);
+        }
     }
 
     public List<Game> listGamesForRound(long tournamentId, int roundNumber) {
@@ -164,9 +191,21 @@ public final class PairingService {
         }
 
         Set<LongPair> previousPairings = gameDao.findPreviousPairings(tournamentId);
+        Set<Long> previousByeRecipients = collectByeRecipients(tournamentId);
         PairingContext context = new PairingContext(
-                tournament, roundNumber, players, previousPairings, List.of(), previousRoundGames);
+                tournament, roundNumber, players, previousPairings, List.of(),
+                previousRoundGames, previousByeRecipients);
         return new LoadedContext(tournament, round, players, context);
+    }
+
+    private Set<Long> collectByeRecipients(long tournamentId) {
+        Set<Long> byes = new HashSet<>();
+        for (Game game : listAllGames(tournamentId)) {
+            if (game.getResult() == GameResult.BYE && game.getWhiteTournamentPlayerId() != null) {
+                byes.add(game.getWhiteTournamentPlayerId());
+            }
+        }
+        return byes;
     }
 
     private Round ensureRound(Tournament tournament, int roundNumber) {
@@ -285,7 +324,7 @@ public final class PairingService {
             game.setBoardNumber(p.boardNumber());
             game.setWhiteTournamentPlayerId(p.whiteTpId());
             game.setBlackTournamentPlayerId(p.blackTpId());
-            game.setRematch(false);
+            game.setRematch(p.rematch());
             if (p.bye()) {
                 game.setResult(GameResult.BYE);
                 game.setWhiteScore(BigDecimal.ONE);

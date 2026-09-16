@@ -28,6 +28,11 @@ public final class JdbcRoundDao implements RoundDao {
             VALUES (?, ?, ?, ?, ?)
             """;
 
+    private static final String SELECT_BY_ID = """
+            SELECT id, tournament_id, round_number, status, paired_at, completed_at
+            FROM round WHERE id = ?
+            """;
+
     private static final String SELECT_BY_TOURNAMENT_AND_NUMBER = """
             SELECT id, tournament_id, round_number, status, paired_at, completed_at
             FROM round WHERE tournament_id = ? AND round_number = ?
@@ -92,6 +97,26 @@ public final class JdbcRoundDao implements RoundDao {
             }
         } catch (SQLException e) {
             throw wrap("Failed to find round by tournament and number", e);
+        }
+    }
+
+    @Override
+    public Optional<Round> findById(long roundId) {
+        return JdbcSupport.withConnection(conn -> findById(conn, roundId), dataSource, "Failed to find round");
+    }
+
+    @Override
+    public Optional<Round> findById(Connection connection, long roundId) {
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID)) {
+            ps.setLong(1, roundId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw wrap("Failed to find round by id", e);
         }
     }
 

@@ -17,6 +17,8 @@ import com.chess.tournament.service.EnrollmentService;
 import com.chess.tournament.service.KnockoutAdvancementService;
 import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.PlayerService;
+import com.chess.tournament.service.RatingService;
+import com.chess.tournament.service.ResultService;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.service.pairing.PairingStrategyFactory;
 import com.zaxxer.hikari.HikariConfig;
@@ -50,6 +52,8 @@ public final class AppContext implements AutoCloseable {
     private final EnrollmentService enrollmentService;
     private final PairingService pairingService;
     private final KnockoutAdvancementService knockoutAdvancementService;
+    private final RatingService ratingService;
+    private final ResultService resultService;
 
     private AppContext(DatabaseConfig databaseConfig, HikariDataSource dataSource) {
         this.databaseConfig = databaseConfig;
@@ -70,6 +74,10 @@ public final class AppContext implements AutoCloseable {
                 new PairingStrategyFactory());
         this.knockoutAdvancementService = new KnockoutAdvancementService(
                 tournamentPlayerDao, unitOfWork);
+        this.ratingService = new RatingService();
+        this.resultService = new ResultService(
+                tournamentDao, tournamentPlayerDao, roundDao, gameDao, playerDao,
+                unitOfWork, ratingService, knockoutAdvancementService);
     }
 
     public static synchronized AppContext initialize() {
@@ -141,6 +149,14 @@ public final class AppContext implements AutoCloseable {
 
     public KnockoutAdvancementService getKnockoutAdvancementService() {
         return knockoutAdvancementService;
+    }
+
+    public RatingService getRatingService() {
+        return ratingService;
+    }
+
+    public ResultService getResultService() {
+        return resultService;
     }
 
     @Override

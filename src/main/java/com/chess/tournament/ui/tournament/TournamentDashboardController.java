@@ -8,6 +8,7 @@ import com.chess.tournament.domain.enums.TournamentType;
 import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.EnrollmentService;
 import com.chess.tournament.service.PairingService;
+import com.chess.tournament.service.ResultService;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.ui.util.Alerts;
 import javafx.concurrent.Task;
@@ -48,6 +49,8 @@ public class TournamentDashboardController {
     @FXML
     private Button pairingsButton;
     @FXML
+    private Button resultsButton;
+    @FXML
     private Button leaderboardButton;
     @FXML
     private Button refreshButton;
@@ -55,6 +58,7 @@ public class TournamentDashboardController {
     private TournamentService tournamentService;
     private EnrollmentService enrollmentService;
     private PairingService pairingService;
+    private ResultService resultService;
     private RoundDao roundDao;
     private long tournamentId;
     private Runnable onBack;
@@ -64,6 +68,7 @@ public class TournamentDashboardController {
         tournamentService = AppContext.get().getTournamentService();
         enrollmentService = AppContext.get().getEnrollmentService();
         pairingService = AppContext.get().getPairingService();
+        resultService = AppContext.get().getResultService();
         roundDao = AppContext.get().getRoundDao();
     }
 
@@ -171,6 +176,27 @@ public class TournamentDashboardController {
     }
 
     @FXML
+    private void onResults() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/results.fxml"));
+            Parent root = loader.load();
+            ResultsController controller = loader.getController();
+            controller.setTournamentId(tournamentId);
+
+            Stage dialog = new Stage();
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.initOwner(titleLabel.getScene().getWindow());
+            dialog.setTitle("Results");
+            dialog.setScene(new Scene(root));
+            dialog.showAndWait();
+            refresh();
+        } catch (IOException e) {
+            log.error("Failed to open results", e);
+            Alerts.error("UI error", e.getMessage());
+        }
+    }
+
+    @FXML
     private void onLeaderboard() {
         Alerts.info("Leaderboard", "Leaderboard arrives in Phase 9.");
     }
@@ -186,8 +212,10 @@ public class TournamentDashboardController {
                 Optional<Round> round1 = roundDao.findByTournamentAndNumber(tournamentId, 1);
                 Optional<Round> pairable = pairingService.findPairableRoundNumber(tournamentId)
                         .flatMap(n -> roundDao.findByTournamentAndNumber(tournamentId, n));
+                Optional<Round> results = resultService.findResultsRoundNumber(tournamentId)
+                        .flatMap(n -> roundDao.findByTournamentAndNumber(tournamentId, n));
                 boolean locked = enrollmentService.isEnrollmentLocked(tournamentId);
-                return new TournamentViewModel(tournament, enrolled, round1, pairable, locked);
+                return new TournamentViewModel(tournament, enrolled, round1, pairable, results, locked);
             }
         };
         task.setOnSucceeded(e -> {
@@ -222,6 +250,7 @@ public class TournamentDashboardController {
         enrollButton.setDisable(false);
         startButton.setDisable(!vm.canStart());
         pairingsButton.setDisable(!vm.canOpenPairings());
+        resultsButton.setDisable(!vm.canEnterResults());
         leaderboardButton.setDisable(!vm.canViewLeaderboard());
         statusLabel.setText(vm.isEnrollmentLocked() ? "Enrollment is locked" : "Enrollment open");
     }
@@ -231,6 +260,7 @@ public class TournamentDashboardController {
         if (busy) {
             startButton.setDisable(true);
             pairingsButton.setDisable(true);
+            resultsButton.setDisable(true);
             leaderboardButton.setDisable(true);
         }
     }

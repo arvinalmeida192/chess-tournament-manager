@@ -66,7 +66,7 @@ class KnockoutPairingStrategyTest {
         tournament.setId(1L);
         tournament.setType(TournamentType.KNOCKOUT);
         tournament.setRoundsPlanned(KnockoutSeeding.expectedRounds(players.size()));
-        return new PairingContext(tournament, round, players, Set.of(), List.of(), previous);
+        return new PairingContext(tournament, round, players, Set.of(), List.of(), previous, Set.of());
     }
 
     private static Game game(int board, long white, long black, GameResult result) {

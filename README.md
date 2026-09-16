@@ -71,6 +71,8 @@ Manual checklists:
 - [docs/manual/phase4-tournaments.md](docs/manual/phase4-tournaments.md)
 - [docs/manual/phase5-round-robin.md](docs/manual/phase5-round-robin.md)
 - [docs/manual/phase6-knockout.md](docs/manual/phase6-knockout.md)
+- [docs/manual/phase7-swiss.md](docs/manual/phase7-swiss.md)
+- [docs/manual/phase8-results.md](docs/manual/phase8-results.md)
 
 ## Tests
 

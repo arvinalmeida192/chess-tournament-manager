@@ -98,8 +98,9 @@ public class PairingsController {
     private void onGenerate() {
         Tournament tournament = tournamentService.findById(tournamentId).orElseThrow();
         if (tournament.getType() != TournamentType.ROUND_ROBIN
-                && tournament.getType() != TournamentType.KNOCKOUT) {
-            Alerts.info("Pairings", "Swiss pairings arrive in Phase 7.");
+                && tournament.getType() != TournamentType.KNOCKOUT
+                && tournament.getType() != TournamentType.SWISS) {
+            Alerts.info("Pairings", "Unsupported tournament type for pairings.");
             return;
         }
         Optional<Integer> pairable = pairingService.findPairableRoundNumber(tournamentId);
@@ -173,7 +174,8 @@ public class PairingsController {
                 }
                 boolean canGenerate = pairable.isPresent()
                         && (tournament.getType() == TournamentType.ROUND_ROBIN
-                        || tournament.getType() == TournamentType.KNOCKOUT);
+                        || tournament.getType() == TournamentType.KNOCKOUT
+                        || tournament.getType() == TournamentType.SWISS);
                 return new RefreshData(displayRound, rows, canGenerate, tournament.getType());
             }
         };
