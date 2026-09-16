@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.chess.tournament.ui.MainController"
+            prefWidth="1024" prefHeight="768">
+    <center>
+        <VBox alignment="CENTER" spacing="16">
+            <padding>
+                <Insets top="40" right="40" bottom="40" left="40"/>
+            </padding>
+            <Label text="Chess Tournament Manager">
+                <font>
+                    <Font name="System Bold" size="28"/>
+                </font>
+            </Label>
+            <Label text="Phase 1 — Foundation &amp; Database Bootstrap"
+                   style="-fx-text-fill: #555555;"/>
+            <Label fx:id="statusLabel" text="Checking database connection..."
+                   wrapText="true"
+                   style="-fx-font-size: 14px;"/>
+        </VBox>
+    </center>
+</BorderPane>

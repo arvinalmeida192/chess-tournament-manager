@@ -1,0 +1,7 @@
+# Copy this file to config/application.properties and adjust values.
+# Environment variables CTMS_DB_URL, CTMS_DB_USER, CTMS_DB_PASSWORD override these settings.
+
+db.url=jdbc:postgresql://localhost:5432/chess_tournament
+db.user=ctms
+db.password=changeme
+db.pool.size=5
