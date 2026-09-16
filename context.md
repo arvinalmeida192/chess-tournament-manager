@@ -27,7 +27,7 @@
 | **Last completed phase** | **Phase 10 — End-to-End UI & Release Hardening** |
 | **Next phase to execute** | **None — all 10 phases complete** |
 | **Build health** | `mvn test` passes (131 tests); Testcontainers PostgreSQL 16 |
-| **DB for local dev** | Docker container `ctms-postgres` (Postgres 16), port `5432` |
+| **DB for local dev** | Docker container `ctms-postgres` (Postgres 16), host port **`5433`** → container `5432` |
 | **DB credentials** | user `ctms` / password `changeme` / db `chess_tournament` (see `config/application.properties.example`) |
 
 ---
@@ -501,17 +501,19 @@ docker start ctms-postgres || docker run -d --name ctms-postgres \
   -e POSTGRES_DB=chess_tournament \
   -e POSTGRES_USER=ctms \
   -e POSTGRES_PASSWORD=changeme \
-  -p 5432:5432 \
+  -p 5433:5432 \
   postgres:16-alpine
 
 cp config/application.properties.example config/application.properties
-export CTMS_DB_URL=jdbc:postgresql://localhost:5432/chess_tournament
+export CTMS_DB_URL=jdbc:postgresql://localhost:5433/chess_tournament
 export CTMS_DB_USER=ctms
 export CTMS_DB_PASSWORD=changeme
 mvn flyway:migrate
 mvn test
 mvn javafx:run   # needs display
 ```
+
+> If `mvn javafx:run` fails with `password authentication failed for user "ctms"`, JDBC is hitting the **system** PostgreSQL on 5432. Use port **5433** (Docker mapping above).
 
 ---
 
@@ -539,7 +541,8 @@ All planned phases (1–10) are complete. Optional follow-ups outside the plan:
 
 - Host JDK may be newer than 17 (e.g. 25); POM uses `maven.compiler.release=17`.
 - Native PostgreSQL client packages may be incomplete; Docker Postgres is the verified path.
-- Port 5432 used by `ctms-postgres`; stop/start with `docker start|stop ctms-postgres`.
+- Port **5433** is used by `ctms-postgres` on the host (maps to container 5432) so system PostgreSQL on 5432 does not intercept connections.
+- Stop/start with `docker start|stop ctms-postgres`.
 - Integration tests require Docker; Testcontainers 1.21.4+ for Docker Engine 29+.
 
 ---

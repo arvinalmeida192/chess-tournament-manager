@@ -17,9 +17,11 @@ docker run -d --name ctms-postgres \
   -e POSTGRES_DB=chess_tournament \
   -e POSTGRES_USER=ctms \
   -e POSTGRES_PASSWORD=changeme \
-  -p 5432:5432 \
+  -p 5433:5432 \
   postgres:16-alpine
 ```
+
+> **Port 5433:** Many Linux installs already run PostgreSQL on `5432`. This project defaults to host port **5433** → container `5432` so JDBC hits the Docker DB, not the system one.
 
 Or with a local PostgreSQL server:
 
@@ -40,7 +42,7 @@ cp config/application.properties.example config/application.properties
 
 | Variable | Purpose |
 |----------|---------|
-| `CTMS_DB_URL` | JDBC URL (e.g. `jdbc:postgresql://localhost:5432/chess_tournament`) |
+| `CTMS_DB_URL` | JDBC URL (e.g. `jdbc:postgresql://localhost:5433/chess_tournament`) |
 | `CTMS_DB_USER` | Database user |
 | `CTMS_DB_PASSWORD` | Database password |
 
@@ -51,7 +53,7 @@ cp config/application.properties.example config/application.properties
 Flyway runs automatically when the application starts. You can also migrate from the CLI:
 
 ```bash
-export CTMS_DB_URL=jdbc:postgresql://localhost:5432/chess_tournament
+export CTMS_DB_URL=jdbc:postgresql://localhost:5433/chess_tournament
 export CTMS_DB_USER=ctms
 export CTMS_DB_PASSWORD=changeme
 mvn flyway:migrate
@@ -113,8 +115,9 @@ If Docker 29+ reports an API version mismatch, the project ships `src/test/resou
 
 | Symptom | What to try |
 |---------|-------------|
+| `password authentication failed for user "ctms"` | Host Postgres is usually on **5432**. Point JDBC at Docker on **5433** (`jdbc:postgresql://localhost:5433/chess_tournament`), or stop the system service (`sudo systemctl stop postgresql`) and remap Docker to 5432 |
 | `Database connection failed` on home | Start `ctms-postgres` (`docker start ctms-postgres`); verify `CTMS_DB_*` or `config/application.properties` |
-| Port 5432 already in use | Stop the other Postgres, or map Docker to another host port and update the JDBC URL |
+| Port already in use when creating the container | Use `-p 5433:5432` (project default) or another free host port |
 | Flyway / schema errors | Ensure empty DB or compatible history; do not mix hand-edited schema with migrations |
 | JavaFX fails to launch | Need a display (local desktop or X11); headless CI can still run `mvn test` |
 | Testcontainers API version error | Confirm `docker-java.properties` is on the test classpath; upgrade Testcontainers if needed |

@@ -1,7 +1,10 @@
 # Copy this file to config/application.properties and adjust values.
 # Environment variables CTMS_DB_URL, CTMS_DB_USER, CTMS_DB_PASSWORD override these settings.
+#
+# Default port is 5433 to avoid clashing with a system PostgreSQL on 5432.
+# If you map Docker as -p 5432:5432 and nothing else uses 5432, change the URL port to 5432.
 
-db.url=jdbc:postgresql://localhost:5432/chess_tournament
+db.url=jdbc:postgresql://localhost:5433/chess_tournament
 db.user=ctms
 db.password=changeme
 db.pool.size=5
