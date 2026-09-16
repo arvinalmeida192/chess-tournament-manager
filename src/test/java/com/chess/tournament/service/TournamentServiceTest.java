@@ -100,4 +100,26 @@ class TournamentServiceTest {
         ArgumentCaptor<TransactionCallback<?>> callbackCaptor = ArgumentCaptor.forClass(TransactionCallback.class);
         verify(unitOfWork).executeInTransaction(callbackCaptor.capture());
     }
+
+    @Test
+    void cancel_setsCancelledForDraft() {
+        Tournament t = new Tournament();
+        t.setId(2L);
+        t.setStatus(TournamentStatus.DRAFT);
+        when(tournamentDao.findById(2L)).thenReturn(Optional.of(t));
+
+        tournamentService.cancelTournament(2L);
+
+        verify(tournamentDao).updateStatus(2L, TournamentStatus.CANCELLED, null, null);
+    }
+
+    @Test
+    void cancel_rejectsCompleted() {
+        Tournament t = new Tournament();
+        t.setId(3L);
+        t.setStatus(TournamentStatus.COMPLETED);
+        when(tournamentDao.findById(3L)).thenReturn(Optional.of(t));
+
+        assertThrows(ValidationException.class, () -> tournamentService.cancelTournament(3L));
+    }
 }

@@ -24,9 +24,9 @@
 
 | Field | Value |
 |-------|--------|
-| **Last completed phase** | **Phase 9 — Leaderboards & Qualification** |
-| **Next phase to execute** | **Phase 10 — End-to-End UI & Release Hardening** |
-| **Build health** | `mvn test` passes (125 tests); Testcontainers PostgreSQL 16 |
+| **Last completed phase** | **Phase 10 — End-to-End UI & Release Hardening** |
+| **Next phase to execute** | **None — all 10 phases complete** |
+| **Build health** | `mvn test` passes (131 tests); Testcontainers PostgreSQL 16 |
 | **DB for local dev** | Docker container `ctms-postgres` (Postgres 16), port `5432` |
 | **DB credentials** | user `ctms` / password `changeme` / db `chess_tournament` (see `config/application.properties.example`) |
 
@@ -45,7 +45,47 @@
 | 7 | Swiss/Dutch pairings | **DONE** |
 | 8 | Results, scoring & Elo ratings | **DONE** |
 | 9 | Leaderboards & qualification | **DONE** |
-| 10 | End-to-end UI & release hardening | **NOT STARTED** |
+| 10 | End-to-end UI & release hardening | **DONE** |
+
+---
+
+## What Phase 10 delivered (DONE)
+
+### Files created
+
+```text
+src/main/resources/css/app.css
+src/main/resources/db/seed/demo.sql
+src/main/java/.../ui/util/UiStyles.java
+src/test/java/.../ui/tournament/TournamentViewModelTest.java
+docs/manual/E2E_CHECKLIST.md
+docs/manual/phase10-e2e.md
+```
+
+### Files updated
+
+```text
+ChessTournamentApp / MainController / main.fxml  ← toolbar, Settings→Test DB, CSS
+ContentNavigator / dialogs                       ← UiStyles
+TournamentService                                ← cancelTournament
+TournamentViewModel / Dashboard / List           ← Finalize, Cancel, UI-001 enablement
+README.md, context.md
+```
+
+### Behaviors verified
+
+- [x] Dashboard buttons driven by TournamentViewModel (enroll/start/pairings/results/leaderboard/finalize/cancel)
+- [x] Confirmation dialogs for start, complete round, finalize, cancel
+- [x] Shared app.css on main scene and modal dialogs
+- [x] Demo seed: 8 players + completed Swiss with top-4 QUALIFIED
+- [x] E2E_CHECKLIST.md maps SRS §13.1
+- [x] README host workflow + architecture + troubleshooting
+- [x] `mvn test` — 131 tests pass
+
+### Design notes from Phase 10 (keep)
+
+- Cancel retains history (`CANCELLED`); allowed for DRAFT and ACTIVE only.
+- Manual E2E rows in `docs/manual/E2E_CHECKLIST.md` are for host sign-off; automated suite covers pairing/results/qualification.
 
 ---
 
@@ -475,25 +515,23 @@ mvn javafx:run   # needs display
 
 ---
 
-## What is NOT done (Phase 10)
+## What is NOT done
 
-Do **not** implement these until the matching phase. Full task lists live in `docs/DEVELOPMENT_PLAN.md`.
+All planned phases (1–10) are complete. Optional follow-ups outside the plan:
 
-### Phase 10 — next (start here)
-
-Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1 acceptance, confirmation dialogs, README architecture/troubleshooting.
+- CSV export, authentication, cloud deploy (explicitly out of scope)
+- TestFX smoke test (Could)
+- Host sign-off of blank rows in `docs/manual/E2E_CHECKLIST.md` on a display machine
 
 ---
 
 ## Rules for the next AI session
 
-1. Read `context.md` → then Phase N section in `docs/DEVELOPMENT_PLAN.md` → then relevant SDD sections.
-2. Execute **only the next incomplete phase** unless the user asks otherwise.
-3. After finishing a phase: run that phase’s **Exit Checklist**, then **update this file** (status table, “Last completed”, “What Phase N delivered”, “Next phase”).
-4. Do not put SQL in UI or pairing logic in DAOs.
-5. Do not commit secrets (`config/application.properties`).
-6. Prefer extending `AppContext` when wiring new services/DAOs.
-7. Keep packages under `com.chess.tournament.{domain,dao,service,ui,bootstrap,config,exception}`.
+1. Read `context.md` → then relevant SDD/SRS sections for any new work.
+2. Do not put SQL in UI or pairing logic in DAOs.
+3. Do not commit secrets (`config/application.properties`).
+4. Prefer extending `AppContext` when wiring new services/DAOs.
+5. Keep packages under `com.chess.tournament.{domain,dao,service,ui,bootstrap,config,exception}`.
 
 ---
 
@@ -510,6 +548,7 @@ Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Phase 10 completed. CSS, toolbar, cancel/finalize UX, demo seed, E2E checklist, README. All phases done. |
 | 2026-09-16 | Phase 9 completed. Leaderboards, tie-breaks, qualification, finalize, UI, tests. Next: Phase 10. |
 | 2026-09-16 | Phase 8 completed. Results/Elo, ResultService, results UI, tests. Next: Phase 9. |
 | 2026-09-16 | Phase 7 completed. Swiss pairing, rematch flag, color balance, tests. Next: Phase 8. |

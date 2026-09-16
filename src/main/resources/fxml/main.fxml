@@ -1,51 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.ToolBar?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.chess.tournament.ui.MainController"
             prefWidth="1024" prefHeight="768">
     <top>
-        <MenuBar>
-            <Menu text="File">
-                <MenuItem text="Home" onAction="#onHome"/>
-                <SeparatorMenuItem/>
-                <MenuItem text="Exit" onAction="#onExit"/>
-            </Menu>
-            <Menu text="Players">
-                <MenuItem text="Manage Players" onAction="#onPlayers"/>
-            </Menu>
-            <Menu text="Tournaments">
-                <MenuItem text="Manage Tournaments" onAction="#onTournaments"/>
-            </Menu>
-        </MenuBar>
+        <VBox>
+            <MenuBar>
+                <Menu text="File">
+                    <MenuItem text="Home" onAction="#onHome"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Exit" onAction="#onExit"/>
+                </Menu>
+                <Menu text="Players">
+                    <MenuItem text="Manage Players" onAction="#onPlayers"/>
+                </Menu>
+                <Menu text="Tournaments">
+                    <MenuItem text="Manage Tournaments" onAction="#onTournaments"/>
+                </Menu>
+                <Menu text="Settings">
+                    <MenuItem text="Test Database Connection" onAction="#onTestConnection"/>
+                </Menu>
+            </MenuBar>
+            <ToolBar>
+                <Button text="Home" onAction="#onHome"/>
+                <Button text="Players" onAction="#onPlayers"/>
+                <Button text="Tournaments" onAction="#onTournaments"/>
+                <Button text="Test DB" onAction="#onTestConnection"/>
+            </ToolBar>
+        </VBox>
     </top>
     <center>
         <StackPane fx:id="contentPane">
-            <VBox fx:id="homePane" alignment="CENTER" spacing="16">
+            <VBox fx:id="homePane" alignment="CENTER" spacing="14">
                 <padding>
-                    <Insets top="40" right="40" bottom="40" left="40"/>
+                    <Insets top="40" right="48" bottom="40" left="48"/>
                 </padding>
-                <Label text="Chess Tournament Manager">
-                    <font>
-                        <Font name="System Bold" size="28"/>
-                    </font>
-                </Label>
-                <Label text="Phase 4 — Tournaments &amp; Enrollment"
-                       style="-fx-text-fill: #555555;"/>
-                <Label fx:id="statusLabel" text="Checking database connection..."
+                <Label text="Chess Tournament Manager" styleClass="home-title"/>
+                <Label text="Host workflow: Players → Create tournament → Enroll → Start → Pairings → Results → Leaderboard → Finalize"
                        wrapText="true"
-                       style="-fx-font-size: 14px;"/>
+                       styleClass="home-subtitle"/>
+                <Label fx:id="statusLabel" text="Checking database connection..."
+                       wrapText="true"/>
             </VBox>
         </StackPane>
     </center>

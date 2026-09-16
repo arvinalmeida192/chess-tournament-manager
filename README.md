@@ -57,6 +57,17 @@ export CTMS_DB_PASSWORD=changeme
 mvn flyway:migrate
 ```
 
+## Optional demo data
+
+Load 8 players and a completed Swiss showcase tournament:
+
+```bash
+docker exec -i ctms-postgres psql -U ctms -d chess_tournament \
+  < src/main/resources/db/seed/demo.sql
+```
+
+The script is idempotent (skips if `Demo Swiss Showcase` already exists).
+
 ## Run the application
 
 ```bash
@@ -64,16 +75,29 @@ cp config/application.properties.example config/application.properties
 mvn javafx:run
 ```
 
-On success, the main window shows **Connected to database**. Use **Players → Manage Players** and **Tournaments → Manage Tournaments**.
+On success, the home screen shows **Connected to database**. Use the toolbar or menus:
 
-Manual checklists:
-- [docs/manual/phase3-players.md](docs/manual/phase3-players.md)
-- [docs/manual/phase4-tournaments.md](docs/manual/phase4-tournaments.md)
-- [docs/manual/phase5-round-robin.md](docs/manual/phase5-round-robin.md)
-- [docs/manual/phase6-knockout.md](docs/manual/phase6-knockout.md)
-- [docs/manual/phase7-swiss.md](docs/manual/phase7-swiss.md)
-- [docs/manual/phase8-results.md](docs/manual/phase8-results.md)
-- [docs/manual/phase9-leaderboard.md](docs/manual/phase9-leaderboard.md)
+- **Players** — global player registry
+- **Tournaments** — create, enroll, run, finalize
+- **Settings → Test Database Connection** — re-check JDBC
+
+### Host workflow
+
+1. Add players (or load demo seed).
+2. Create a tournament (Round Robin / Knockout / Swiss).
+3. Enroll players → **Start Tournament**.
+4. **Pairings** → generate & publish the current round.
+5. **Enter Results** → save → **Complete Round** (applies points + Elo).
+6. Repeat until all planned rounds are complete.
+7. **Leaderboard** → optionally **Apply Qualification** → **Finalize**.
+
+Invalid actions stay disabled (or return clear validation errors).
+
+## Architecture
+
+Layered desktop app (no Spring): **UI → Service → DAO → PostgreSQL**.
+
+See the layer diagram and pairing/rating design in [docs/SDD.md](docs/SDD.md). Requirements live in [docs/SRS.md](docs/SRS.md). Phase plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md).
 
 ## Tests
 
@@ -85,9 +109,31 @@ mvn test
 
 If Docker 29+ reports an API version mismatch, the project ships `src/test/resources/docker-java.properties` with `api.version=1.44` as a workaround. Testcontainers 1.21.4+ is required for recent Docker Engine versions.
 
+## Troubleshooting
+
+| Symptom | What to try |
+|---------|-------------|
+| `Database connection failed` on home | Start `ctms-postgres` (`docker start ctms-postgres`); verify `CTMS_DB_*` or `config/application.properties` |
+| Port 5432 already in use | Stop the other Postgres, or map Docker to another host port and update the JDBC URL |
+| Flyway / schema errors | Ensure empty DB or compatible history; do not mix hand-edited schema with migrations |
+| JavaFX fails to launch | Need a display (local desktop or X11); headless CI can still run `mvn test` |
+| Testcontainers API version error | Confirm `docker-java.properties` is on the test classpath; upgrade Testcontainers if needed |
+
+## Manual checklists
+
+- [E2E release checklist](docs/manual/E2E_CHECKLIST.md) (SRS §13.1)
+- [docs/manual/phase3-players.md](docs/manual/phase3-players.md)
+- [docs/manual/phase4-tournaments.md](docs/manual/phase4-tournaments.md)
+- [docs/manual/phase5-round-robin.md](docs/manual/phase5-round-robin.md)
+- [docs/manual/phase6-knockout.md](docs/manual/phase6-knockout.md)
+- [docs/manual/phase7-swiss.md](docs/manual/phase7-swiss.md)
+- [docs/manual/phase8-results.md](docs/manual/phase8-results.md)
+- [docs/manual/phase9-leaderboard.md](docs/manual/phase9-leaderboard.md)
+- [docs/manual/phase10-e2e.md](docs/manual/phase10-e2e.md)
+
 ## Documentation
 
 - [SRS](docs/SRS.md) — requirements
 - [SDD](docs/SDD.md) — design
 - [Development plan](docs/DEVELOPMENT_PLAN.md) — 10 phases
-- [context.md](context.md) — handoff status for continuing development
+- [context.md](context.md) — handoff status

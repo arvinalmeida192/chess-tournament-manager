@@ -181,4 +181,24 @@ public final class TournamentService {
     public int enrolledCount(long tournamentId) {
         return tournamentPlayerDao.findByTournament(tournamentId).size();
     }
+
+    /**
+     * Cancels a DRAFT or ACTIVE tournament (FR-TNM-007). History is retained.
+     */
+    public void cancelTournament(long tournamentId) {
+        Tournament tournament = tournamentDao.findById(tournamentId)
+                .orElseThrow(() -> new NotFoundException("Tournament not found: " + tournamentId));
+
+        if (tournament.getStatus() != TournamentStatus.DRAFT
+                && tournament.getStatus() != TournamentStatus.ACTIVE) {
+            throw new ValidationException("Only DRAFT or ACTIVE tournaments can be cancelled");
+        }
+
+        Instant completedAt = tournament.getStatus() == TournamentStatus.ACTIVE
+                ? Instant.now()
+                : null;
+        tournamentDao.updateStatus(tournamentId, TournamentStatus.CANCELLED,
+                tournament.getStartedAt(), completedAt);
+        log.info("Cancelled tournament {}", tournamentId);
+    }
 }

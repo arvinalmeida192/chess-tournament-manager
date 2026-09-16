@@ -1,0 +1,87 @@
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: #f7f8fa;
+}
+
+.label {
+    -fx-text-fill: #1f2933;
+}
+
+.status-ok {
+    -fx-text-fill: #0b6e4f;
+    -fx-font-weight: bold;
+}
+
+.status-error {
+    -fx-text-fill: #9b1c1c;
+    -fx-font-weight: bold;
+}
+
+.button {
+    -fx-background-radius: 4;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+}
+
+.button:disabled {
+    -fx-opacity: 0.55;
+}
+
+.tool-bar {
+    -fx-background-color: #eef1f5;
+    -fx-padding: 6 10 6 10;
+    -fx-spacing: 8;
+}
+
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #d9dee7;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #e8edf5;
+}
+
+.table-view .column-header .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #243b53;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #fafbfd;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #cfe0fc;
+}
+
+.menu-bar {
+    -fx-background-color: #243b53;
+}
+
+.menu-bar .label {
+    -fx-text-fill: #f0f4f8;
+}
+
+.menu-item .label {
+    -fx-text-fill: #1f2933;
+}
+
+.home-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #102a43;
+}
+
+.home-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #486581;
+}
+
+.section-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}

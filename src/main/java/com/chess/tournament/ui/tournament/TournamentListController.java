@@ -3,9 +3,11 @@ package com.chess.tournament.ui.tournament;
 import com.chess.tournament.bootstrap.AppContext;
 import com.chess.tournament.domain.Tournament;
 import com.chess.tournament.domain.enums.TournamentStatus;
+import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.ui.ContentNavigator;
 import com.chess.tournament.ui.util.Alerts;
+import com.chess.tournament.ui.util.UiStyles;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -50,6 +52,8 @@ public class TournamentListController {
     @FXML
     private Button openButton;
     @FXML
+    private Button cancelButton;
+    @FXML
     private Button refreshButton;
     @FXML
     private ComboBox<String> statusFilter;
@@ -78,8 +82,11 @@ public class TournamentListController {
         statusFilter.setOnAction(e -> refreshList());
 
         openButton.setDisable(true);
-        tournamentTable.getSelectionModel().selectedItemProperty().addListener((obs, o, selected) ->
-                openButton.setDisable(selected == null));
+        cancelButton.setDisable(true);
+        tournamentTable.getSelectionModel().selectedItemProperty().addListener((obs, o, selected) -> {
+            openButton.setDisable(selected == null);
+            cancelButton.setDisable(selected == null || !canCancel(selected));
+        });
 
         tournamentTable.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2 && tournamentTable.getSelectionModel().getSelectedItem() != null) {
@@ -101,7 +108,9 @@ public class TournamentListController {
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.initOwner(tournamentTable.getScene().getWindow());
             dialog.setTitle("Create Tournament");
-            dialog.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+            UiStyles.apply(scene);
+            dialog.setScene(scene);
             dialog.setResizable(false);
             dialog.showAndWait();
 
@@ -126,8 +135,48 @@ public class TournamentListController {
     }
 
     @FXML
+    private void onCancelTournament() {
+        Tournament selected = tournamentTable.getSelectionModel().getSelectedItem();
+        if (selected == null || !canCancel(selected)) {
+            return;
+        }
+        if (!Alerts.confirm("Cancel tournament",
+                "Cancel \"" + selected.getName()
+                        + "\"? Status becomes CANCELLED. History is kept.")) {
+            return;
+        }
+        setBusy(true);
+        long id = selected.getId();
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                tournamentService.cancelTournament(id);
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> {
+            setBusy(false);
+            statusLabel.setText("Tournament cancelled");
+            refreshList();
+        });
+        task.setOnFailed(e -> {
+            setBusy(false);
+            Throwable error = task.getException();
+            log.error("Cancel failed", error);
+            Alerts.error("Cancel failed",
+                    error instanceof DomainException ? error.getMessage() : error.getMessage());
+        });
+        new Thread(task, "cancel-tournament-list").start();
+    }
+
+    @FXML
     private void onRefresh() {
         refreshList();
+    }
+
+    private static boolean canCancel(Tournament tournament) {
+        return tournament.getStatus() == TournamentStatus.DRAFT
+                || tournament.getStatus() == TournamentStatus.ACTIVE;
     }
 
     private void openDashboard(long tournamentId) {
@@ -155,6 +204,8 @@ public class TournamentListController {
             List<Tournament> items = task.getValue();
             tournamentTable.getItems().setAll(items);
             statusLabel.setText(items.size() + " tournament(s)");
+            Tournament selected = tournamentTable.getSelectionModel().getSelectedItem();
+            cancelButton.setDisable(selected == null || !canCancel(selected));
         });
         task.setOnFailed(e -> {
             setBusy(false);
@@ -169,5 +220,7 @@ public class TournamentListController {
         refreshButton.setDisable(busy);
         statusFilter.setDisable(busy);
         openButton.setDisable(busy || tournamentTable.getSelectionModel().getSelectedItem() == null);
+        Tournament selected = tournamentTable.getSelectionModel().getSelectedItem();
+        cancelButton.setDisable(busy || selected == null || !canCancel(selected));
     }
 }

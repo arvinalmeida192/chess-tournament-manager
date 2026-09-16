@@ -137,6 +137,18 @@ public final class TournamentViewModel {
                 && hasCompletedRound;
     }
 
+    /** DRAFT or ACTIVE may be cancelled (FR-TNM-007). */
+    public boolean canCancel() {
+        return tournament.getStatus() == TournamentStatus.DRAFT
+                || tournament.getStatus() == TournamentStatus.ACTIVE;
+    }
+
+    /** Enrollment screen is openable while DRAFT/ACTIVE (view-only when locked). */
+    public boolean canOpenEnrollment() {
+        return tournament.getStatus() == TournamentStatus.DRAFT
+                || tournament.getStatus() == TournamentStatus.ACTIVE;
+    }
+
     public String getCurrentRoundLabel() {
         if (resultsRound.isPresent()) {
             Round r = resultsRound.get();

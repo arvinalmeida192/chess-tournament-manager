@@ -7,7 +7,6 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
@@ -19,11 +18,7 @@
             </padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <Button text="← Back to list" onAction="#onBack"/>
-                <Label fx:id="titleLabel" text="Tournament">
-                    <font>
-                        <Font name="System Bold" size="22"/>
-                    </font>
-                </Label>
+                <Label fx:id="titleLabel" text="Tournament" styleClass="section-title"/>
             </HBox>
             <Separator/>
         </VBox>
@@ -37,12 +32,14 @@
             <Label fx:id="enrolledLabel"/>
             <Label fx:id="roundLabel"/>
             <Label fx:id="warningLabel" wrapText="true" style="-fx-text-fill: #a65c00;"/>
-            <HBox spacing="8">
+            <HBox spacing="8" alignment="CENTER_LEFT">
                 <Button fx:id="enrollButton" text="Manage Enrollment" onAction="#onEnrollment"/>
                 <Button fx:id="startButton" text="Start Tournament" onAction="#onStart"/>
-                <Button fx:id="pairingsButton" text="Generate Pairings" onAction="#onPairings"/>
+                <Button fx:id="pairingsButton" text="Pairings" onAction="#onPairings"/>
                 <Button fx:id="resultsButton" text="Enter Results" onAction="#onResults"/>
                 <Button fx:id="leaderboardButton" text="Leaderboard" onAction="#onLeaderboard"/>
+                <Button fx:id="finalizeButton" text="Finalize" onAction="#onFinalize"/>
+                <Button fx:id="cancelButton" text="Cancel Tournament" onAction="#onCancelTournament"/>
                 <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
             </HBox>
             <Label fx:id="statusLabel" style="-fx-text-fill: #555555;"/>

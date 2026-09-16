@@ -5,6 +5,7 @@ import com.chess.tournament.domain.Player;
 import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.PlayerService;
 import com.chess.tournament.ui.util.Alerts;
+import com.chess.tournament.ui.util.UiStyles;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -162,7 +163,9 @@ public class PlayerListController {
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.initOwner(playerTable.getScene().getWindow());
             dialog.setTitle(existing == null ? "Add Player" : "Edit Player");
-            dialog.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+            UiStyles.apply(scene);
+            dialog.setScene(scene);
             dialog.setResizable(false);
             dialog.showAndWait();
 

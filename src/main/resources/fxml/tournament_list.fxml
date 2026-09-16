@@ -28,6 +28,7 @@
             <ToolBar>
                 <Button fx:id="createButton" text="Create" onAction="#onCreate"/>
                 <Button fx:id="openButton" text="Open Dashboard" onAction="#onOpen"/>
+                <Button fx:id="cancelButton" text="Cancel" onAction="#onCancelTournament"/>
                 <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
                 <Label text="Status filter:"/>
                 <ComboBox fx:id="statusFilter" prefWidth="140"/>

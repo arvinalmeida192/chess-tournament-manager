@@ -11,6 +11,7 @@ import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.ResultService;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.ui.util.Alerts;
+import com.chess.tournament.ui.util.UiStyles;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -53,6 +54,10 @@ public class TournamentDashboardController {
     @FXML
     private Button leaderboardButton;
     @FXML
+    private Button finalizeButton;
+    @FXML
+    private Button cancelButton;
+    @FXML
     private Button refreshButton;
 
     private TournamentService tournamentService;
@@ -62,6 +67,7 @@ public class TournamentDashboardController {
     private RoundDao roundDao;
     private long tournamentId;
     private Runnable onBack;
+    private TournamentViewModel currentVm;
 
     @FXML
     private void initialize() {
@@ -100,13 +106,7 @@ public class TournamentDashboardController {
             Parent root = loader.load();
             EnrollmentController controller = loader.getController();
             controller.setTournamentId(tournamentId);
-
-            Stage dialog = new Stage();
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            dialog.initOwner(titleLabel.getScene().getWindow());
-            dialog.setTitle("Enrollment");
-            dialog.setScene(new Scene(root));
-            dialog.showAndWait();
+            showDialog(root, "Enrollment");
             refresh();
         } catch (IOException e) {
             log.error("Failed to open enrollment", e);
@@ -136,10 +136,13 @@ public class TournamentDashboardController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
+            if (currentVm != null) {
+                applyViewModel(currentVm);
+            }
             Throwable error = task.getException();
             log.error("Failed to start tournament", error);
-            String message = error instanceof DomainException ? error.getMessage() : error.getMessage();
-            Alerts.error("Start failed", message);
+            Alerts.error("Start failed",
+                    error instanceof DomainException ? error.getMessage() : error.getMessage());
         });
         new Thread(task, "start-tournament").start();
     }
@@ -160,14 +163,8 @@ public class TournamentDashboardController {
                 PairingsController controller = loader.getController();
                 controller.setTournamentId(tournamentId);
             }
-
-            Stage dialog = new Stage();
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            dialog.initOwner(titleLabel.getScene().getWindow());
-            dialog.setTitle(tournament.getType() == TournamentType.KNOCKOUT
+            showDialog(root, tournament.getType() == TournamentType.KNOCKOUT
                     ? "Knockout Bracket" : "Pairings");
-            dialog.setScene(new Scene(root));
-            dialog.showAndWait();
             refresh();
         } catch (IOException e) {
             log.error("Failed to open pairings", e);
@@ -182,13 +179,7 @@ public class TournamentDashboardController {
             Parent root = loader.load();
             ResultsController controller = loader.getController();
             controller.setTournamentId(tournamentId);
-
-            Stage dialog = new Stage();
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            dialog.initOwner(titleLabel.getScene().getWindow());
-            dialog.setTitle("Results");
-            dialog.setScene(new Scene(root));
-            dialog.showAndWait();
+            showDialog(root, "Results");
             refresh();
         } catch (IOException e) {
             log.error("Failed to open results", e);
@@ -203,18 +194,88 @@ public class TournamentDashboardController {
             Parent root = loader.load();
             LeaderboardController controller = loader.getController();
             controller.setTournamentId(tournamentId);
-
-            Stage dialog = new Stage();
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            dialog.initOwner(titleLabel.getScene().getWindow());
-            dialog.setTitle("Leaderboard");
-            dialog.setScene(new Scene(root));
-            dialog.showAndWait();
+            showDialog(root, "Leaderboard");
             refresh();
         } catch (IOException e) {
             log.error("Failed to open leaderboard", e);
             Alerts.error("UI error", e.getMessage());
         }
+    }
+
+    @FXML
+    private void onFinalize() {
+        if (!Alerts.confirm("Finalize tournament",
+                "Finalize this tournament? Qualification will be applied and the tournament locked as COMPLETED.")) {
+            return;
+        }
+        setBusy(true);
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                tournamentService.finalizeTournament(tournamentId);
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> {
+            setBusy(false);
+            statusLabel.setText("Tournament finalized");
+            Alerts.info("Finalized", "Tournament is COMPLETED. Open Leaderboard for the final board.");
+            refresh();
+        });
+        task.setOnFailed(e -> {
+            setBusy(false);
+            if (currentVm != null) {
+                applyViewModel(currentVm);
+            }
+            Throwable error = task.getException();
+            log.error("Finalize failed", error);
+            Alerts.error("Finalize failed",
+                    error instanceof DomainException ? error.getMessage() : error.getMessage());
+        });
+        new Thread(task, "finalize-tournament").start();
+    }
+
+    @FXML
+    private void onCancelTournament() {
+        if (!Alerts.confirm("Cancel tournament",
+                "Cancel this tournament? Status becomes CANCELLED. History is kept; this cannot be undone from the UI.")) {
+            return;
+        }
+        setBusy(true);
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                tournamentService.cancelTournament(tournamentId);
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> {
+            setBusy(false);
+            statusLabel.setText("Tournament cancelled");
+            refresh();
+        });
+        task.setOnFailed(e -> {
+            setBusy(false);
+            if (currentVm != null) {
+                applyViewModel(currentVm);
+            }
+            Throwable error = task.getException();
+            log.error("Cancel failed", error);
+            Alerts.error("Cancel failed",
+                    error instanceof DomainException ? error.getMessage() : error.getMessage());
+        });
+        new Thread(task, "cancel-tournament").start();
+    }
+
+    private void showDialog(Parent root, String title) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initOwner(titleLabel.getScene().getWindow());
+        dialog.setTitle(title);
+        Scene scene = new Scene(root);
+        UiStyles.apply(scene);
+        dialog.setScene(scene);
+        dialog.showAndWait();
     }
 
     private void refresh() {
@@ -244,6 +305,9 @@ public class TournamentDashboardController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
+            if (currentVm != null) {
+                applyViewModel(currentVm);
+            }
             log.error("Failed to load dashboard", task.getException());
             Alerts.error("Load failed", task.getException().getMessage());
         });
@@ -251,13 +315,14 @@ public class TournamentDashboardController {
     }
 
     private void applyViewModel(TournamentViewModel vm) {
+        this.currentVm = vm;
         Tournament t = vm.getTournament();
         titleLabel.setText(t.getName());
         configLabel.setText("Type: " + t.getType()
                 + "  |  Status: " + t.getStatus()
                 + "  |  Rounds planned: " + t.getRoundsPlanned()
                 + "  |  Qualifiers: " + t.getQualifiersCount()
-                + (t.getType().name().equals("SWISS")
+                + (t.getType() == TournamentType.SWISS
                 ? "  |  Swiss first round: " + t.getSwissFirstRoundMethod() : ""));
         enrolledLabel.setText("Enrolled players: " + vm.getEnrolledCount());
         roundLabel.setText("Current round: " + vm.getCurrentRoundLabel());
@@ -265,23 +330,33 @@ public class TournamentDashboardController {
         warningLabel.setText(warning == null ? "" : warning);
         warningLabel.setVisible(warning != null);
 
-        enrollButton.setDisable(!vm.canEnroll() && vm.isEnrollmentLocked());
-        // Allow opening enrollment screen when can enroll OR to view locked list
-        enrollButton.setDisable(false);
+        enrollButton.setDisable(!vm.canOpenEnrollment());
         startButton.setDisable(!vm.canStart());
         pairingsButton.setDisable(!vm.canOpenPairings());
         resultsButton.setDisable(!vm.canEnterResults());
         leaderboardButton.setDisable(!vm.canViewLeaderboard());
-        statusLabel.setText(vm.isEnrollmentLocked() ? "Enrollment is locked" : "Enrollment open");
+        finalizeButton.setDisable(!vm.canFinalize());
+        cancelButton.setDisable(!vm.canCancel());
+
+        if (vm.isEnrollmentLocked()) {
+            statusLabel.setText("Enrollment is locked");
+        } else if (vm.canFinalize()) {
+            statusLabel.setText("All rounds complete — ready to finalize");
+        } else {
+            statusLabel.setText(vm.canOpenEnrollment() ? "Enrollment open" : "Tournament closed");
+        }
     }
 
     private void setBusy(boolean busy) {
         refreshButton.setDisable(busy);
         if (busy) {
+            enrollButton.setDisable(true);
             startButton.setDisable(true);
             pairingsButton.setDisable(true);
             resultsButton.setDisable(true);
             leaderboardButton.setDisable(true);
+            finalizeButton.setDisable(true);
+            cancelButton.setDisable(true);
         }
     }
 }

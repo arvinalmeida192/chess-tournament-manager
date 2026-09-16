@@ -1,5 +1,6 @@
 package com.chess.tournament.ui;
 
+import com.chess.tournament.ui.util.UiStyles;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.layout.StackPane;
@@ -29,6 +30,7 @@ public final class ContentNavigator {
         if (contentPane == null) {
             throw new IllegalStateException("ContentNavigator is not bound");
         }
+        UiStyles.apply(view);
         contentPane.getChildren().setAll(view);
     }
 

@@ -1,5 +1,6 @@
 package com.chess.tournament.bootstrap;
 
+import com.chess.tournament.ui.util.UiStyles;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -26,8 +27,10 @@ public class ChessTournamentApp extends Application {
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main.fxml"));
         Parent root = loader.load();
+        Scene scene = new Scene(root, 1024, 768);
+        UiStyles.apply(scene);
         primaryStage.setTitle("Chess Tournament Manager");
-        primaryStage.setScene(new Scene(root, 1024, 768));
+        primaryStage.setScene(scene);
         primaryStage.show();
         log.info("Main window shown");
     }

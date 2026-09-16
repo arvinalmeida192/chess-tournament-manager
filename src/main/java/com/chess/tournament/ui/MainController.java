@@ -1,7 +1,9 @@
 package com.chess.tournament.ui;
 
 import com.chess.tournament.bootstrap.AppContext;
+import com.chess.tournament.ui.util.Alerts;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
@@ -33,24 +35,7 @@ public class MainController {
     private void initialize() {
         contentPane.setId("contentPane");
         ContentNavigator.bind(contentPane);
-        try (Connection connection = AppContext.get().getDataSource().getConnection();
-             Statement statement = connection.createStatement();
-             ResultSet rs = statement.executeQuery("SELECT 1")) {
-            if (rs.next() && rs.getInt(1) == 1) {
-                statusLabel.setText("Connected to database");
-                statusLabel.getStyleClass().removeAll("status-error");
-                statusLabel.getStyleClass().add("status-ok");
-                log.info("Database connectivity check succeeded");
-            } else {
-                statusLabel.setText("Database check failed: unexpected SELECT 1 result");
-                statusLabel.getStyleClass().add("status-error");
-            }
-        } catch (Exception e) {
-            log.error("Database connectivity check failed", e);
-            statusLabel.setText("Database connection failed: " + e.getMessage()
-                    + " — check CTMS_DB_* env vars or config/application.properties");
-            statusLabel.getStyleClass().add("status-error");
-        }
+        testConnection(false);
     }
 
     @FXML
@@ -69,7 +54,51 @@ public class MainController {
     }
 
     @FXML
+    private void onTestConnection() {
+        testConnection(true);
+    }
+
+    @FXML
     private void onExit() {
         Platform.exit();
+    }
+
+    private void testConnection(boolean showDialog) {
+        statusLabel.setText("Checking database connection...");
+        statusLabel.getStyleClass().removeAll("status-ok", "status-error");
+
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() throws Exception {
+                try (Connection connection = AppContext.get().getDataSource().getConnection();
+                     Statement statement = connection.createStatement();
+                     ResultSet rs = statement.executeQuery("SELECT 1")) {
+                    if (rs.next() && rs.getInt(1) == 1) {
+                        return null;
+                    }
+                    throw new IllegalStateException("unexpected SELECT 1 result");
+                }
+            }
+        };
+        task.setOnSucceeded(e -> {
+            statusLabel.setText("Connected to database");
+            statusLabel.getStyleClass().add("status-ok");
+            log.info("Database connectivity check succeeded");
+            if (showDialog) {
+                Alerts.info("Database connection", "Connection OK — SELECT 1 succeeded.");
+            }
+        });
+        task.setOnFailed(e -> {
+            Throwable error = task.getException();
+            log.error("Database connectivity check failed", error);
+            String message = "Database connection failed: " + error.getMessage()
+                    + " — check CTMS_DB_* env vars or config/application.properties";
+            statusLabel.setText(message);
+            statusLabel.getStyleClass().add("status-error");
+            if (showDialog) {
+                Alerts.error("Database connection", message);
+            }
+        });
+        new Thread(task, "db-connection-check").start();
     }
 }
