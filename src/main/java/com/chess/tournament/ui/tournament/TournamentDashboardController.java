@@ -198,7 +198,23 @@ public class TournamentDashboardController {
 
     @FXML
     private void onLeaderboard() {
-        Alerts.info("Leaderboard", "Leaderboard arrives in Phase 9.");
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/leaderboard.fxml"));
+            Parent root = loader.load();
+            LeaderboardController controller = loader.getController();
+            controller.setTournamentId(tournamentId);
+
+            Stage dialog = new Stage();
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.initOwner(titleLabel.getScene().getWindow());
+            dialog.setTitle("Leaderboard");
+            dialog.setScene(new Scene(root));
+            dialog.showAndWait();
+            refresh();
+        } catch (IOException e) {
+            log.error("Failed to open leaderboard", e);
+            Alerts.error("UI error", e.getMessage());
+        }
     }
 
     private void refresh() {
@@ -215,7 +231,11 @@ public class TournamentDashboardController {
                 Optional<Round> results = resultService.findResultsRoundNumber(tournamentId)
                         .flatMap(n -> roundDao.findByTournamentAndNumber(tournamentId, n));
                 boolean locked = enrollmentService.isEnrollmentLocked(tournamentId);
-                return new TournamentViewModel(tournament, enrolled, round1, pairable, results, locked);
+                boolean allComplete = tournamentService.areAllRoundsComplete(tournamentId);
+                boolean hasCompleted = roundDao.findByTournament(tournamentId).stream()
+                        .anyMatch(r -> r.getStatus() == com.chess.tournament.domain.enums.RoundStatus.COMPLETED);
+                return new TournamentViewModel(tournament, enrolled, round1, pairable, results,
+                        locked, allComplete, hasCompleted);
             }
         };
         task.setOnSucceeded(e -> {

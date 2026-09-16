@@ -73,6 +73,7 @@ Manual checklists:
 - [docs/manual/phase6-knockout.md](docs/manual/phase6-knockout.md)
 - [docs/manual/phase7-swiss.md](docs/manual/phase7-swiss.md)
 - [docs/manual/phase8-results.md](docs/manual/phase8-results.md)
+- [docs/manual/phase9-leaderboard.md](docs/manual/phase9-leaderboard.md)
 
 ## Tests
 

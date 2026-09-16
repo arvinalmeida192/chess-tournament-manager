@@ -19,27 +19,41 @@ public final class TournamentViewModel {
     private final Optional<Round> pairableRound;
     private final Optional<Round> resultsRound;
     private final boolean enrollmentLocked;
+    private final boolean allRoundsComplete;
+    private final boolean hasCompletedRound;
 
     public TournamentViewModel(Tournament tournament, int enrolledCount,
                                Optional<Round> round1, boolean enrollmentLocked) {
-        this(tournament, enrolledCount, round1, Optional.empty(), Optional.empty(), enrollmentLocked);
+        this(tournament, enrolledCount, round1, Optional.empty(), Optional.empty(),
+                enrollmentLocked, false, false);
     }
 
     public TournamentViewModel(Tournament tournament, int enrolledCount,
                                Optional<Round> round1, Optional<Round> pairableRound,
                                boolean enrollmentLocked) {
-        this(tournament, enrolledCount, round1, pairableRound, Optional.empty(), enrollmentLocked);
+        this(tournament, enrolledCount, round1, pairableRound, Optional.empty(),
+                enrollmentLocked, false, false);
     }
 
     public TournamentViewModel(Tournament tournament, int enrolledCount,
                                Optional<Round> round1, Optional<Round> pairableRound,
                                Optional<Round> resultsRound, boolean enrollmentLocked) {
+        this(tournament, enrolledCount, round1, pairableRound, resultsRound,
+                enrollmentLocked, false, false);
+    }
+
+    public TournamentViewModel(Tournament tournament, int enrolledCount,
+                               Optional<Round> round1, Optional<Round> pairableRound,
+                               Optional<Round> resultsRound, boolean enrollmentLocked,
+                               boolean allRoundsComplete, boolean hasCompletedRound) {
         this.tournament = tournament;
         this.enrolledCount = enrolledCount;
         this.round1 = round1;
         this.pairableRound = pairableRound;
         this.resultsRound = resultsRound;
         this.enrollmentLocked = enrollmentLocked;
+        this.allRoundsComplete = allRoundsComplete;
+        this.hasCompletedRound = hasCompletedRound;
     }
 
     public Tournament getTournament() {
@@ -106,12 +120,21 @@ public final class TournamentViewModel {
     }
 
     public boolean canFinalize() {
-        return false; // Phase 9
+        if (tournament.getStatus() != TournamentStatus.ACTIVE) {
+            return false;
+        }
+        return allRoundsComplete;
     }
 
     public boolean canViewLeaderboard() {
         return tournament.getStatus() == TournamentStatus.ACTIVE
                 || tournament.getStatus() == TournamentStatus.COMPLETED;
+    }
+
+    public boolean canApplyQualification() {
+        return (tournament.getStatus() == TournamentStatus.ACTIVE
+                || tournament.getStatus() == TournamentStatus.COMPLETED)
+                && hasCompletedRound;
     }
 
     public String getCurrentRoundLabel() {

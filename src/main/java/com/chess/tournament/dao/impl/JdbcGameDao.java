@@ -56,6 +56,15 @@ public final class JdbcGameDao implements GameDao {
               AND g.black_tournament_player_id IS NOT NULL
             """;
 
+    private static final String SELECT_BY_TOURNAMENT = """
+            SELECT g.id, g.round_id, g.board_number, g.white_tournament_player_id, g.black_tournament_player_id,
+                   g.result, g.white_score, g.black_score, g.rematch, g.white_rating_delta, g.black_rating_delta
+            FROM game g
+            JOIN round r ON g.round_id = r.id
+            WHERE r.tournament_id = ?
+            ORDER BY r.round_number, g.board_number
+            """;
+
     private static final String EXISTS_FOR_TOURNAMENT = """
             SELECT 1
             FROM game g
@@ -189,6 +198,28 @@ public final class JdbcGameDao implements GameDao {
             }
         } catch (SQLException e) {
             throw wrap("Failed to find previous pairings", e);
+        }
+    }
+
+    @Override
+    public List<Game> findByTournament(long tournamentId) {
+        return JdbcSupport.withConnection(conn -> findByTournament(conn, tournamentId), dataSource,
+                "Failed to find games for tournament");
+    }
+
+    @Override
+    public List<Game> findByTournament(Connection connection, long tournamentId) {
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_TOURNAMENT)) {
+            ps.setLong(1, tournamentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Game> games = new ArrayList<>();
+                while (rs.next()) {
+                    games.add(mapRow(rs));
+                }
+                return games;
+            }
+        } catch (SQLException e) {
+            throw wrap("Failed to find games for tournament", e);
         }
     }
 

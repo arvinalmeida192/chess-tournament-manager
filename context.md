@@ -24,9 +24,9 @@
 
 | Field | Value |
 |-------|--------|
-| **Last completed phase** | **Phase 8 — Results, Scoring & Elo Ratings** |
-| **Next phase to execute** | **Phase 9 — Leaderboards & Qualification** |
-| **Build health** | `mvn test` passes (113 tests); Testcontainers PostgreSQL 16 |
+| **Last completed phase** | **Phase 9 — Leaderboards & Qualification** |
+| **Next phase to execute** | **Phase 10 — End-to-End UI & Release Hardening** |
+| **Build health** | `mvn test` passes (125 tests); Testcontainers PostgreSQL 16 |
 | **DB for local dev** | Docker container `ctms-postgres` (Postgres 16), port `5432` |
 | **DB credentials** | user `ctms` / password `changeme` / db `chess_tournament` (see `config/application.properties.example`) |
 
@@ -44,8 +44,53 @@
 | 6 | Knockout pairings & elimination | **DONE** |
 | 7 | Swiss/Dutch pairings | **DONE** |
 | 8 | Results, scoring & Elo ratings | **DONE** |
-| 9 | Leaderboards & qualification | **NOT STARTED** |
+| 9 | Leaderboards & qualification | **DONE** |
 | 10 | End-to-end UI & release hardening | **NOT STARTED** |
+
+---
+
+## What Phase 9 delivered (DONE)
+
+### Files created
+
+```text
+src/main/java/com/chess/tournament/service/
+  LeaderboardService.java, QualificationService.java
+  leaderboard/StandingRow.java, StandingEntry.java,
+              StandingComparator.java, HeadToHeadCalculator.java
+src/main/java/com/chess/tournament/ui/tournament/LeaderboardController.java
+src/main/resources/fxml/leaderboard.fxml
+src/test/java/.../service/leaderboard/StandingComparatorTest.java
+src/test/java/.../service/leaderboard/HeadToHeadCalculatorTest.java
+src/test/java/.../integration/LeaderboardQualificationIntegrationTest.java
+docs/manual/phase9-leaderboard.md
+```
+
+### Files updated
+
+```text
+GameDao / JdbcGameDao               ← findByTournament
+TournamentService                   ← finalizeTournament, areAllRoundsComplete
+AppContext                          ← LeaderboardService + QualificationService
+TournamentViewModel / Dashboard     ← leaderboard dialog, canFinalize flags
+README.md, context.md
+```
+
+### Behaviors verified
+
+- [x] StandingComparator: points DESC; 2-way H2H; 3-way skips H2H → rating → name
+- [x] LeaderboardService trusts TP.points on latest completed round; recomputes for historical
+- [x] QualificationService: top Q QUALIFIED, rest ELIMINATED; Q=0 → NOT_APPLICABLE
+- [x] finalizeTournament blocked until all planned rounds COMPLETED; then qualifies + COMPLETED
+- [x] Leaderboard UI: round selector, Apply Qualification, Finalize, final columns when COMPLETED
+- [x] Integration: Swiss 8 players / 3 rounds → top 4 QUALIFIED; TP.points match board
+- [x] `mvn test` — 125 tests pass
+
+### Design notes from Phase 9 (keep)
+
+- H2H only when exactly two players share the same points total (BR-TIE-002).
+- Finalize applies qualification while ACTIVE, then sets COMPLETED.
+- Final-only columns (start/final rating, qualification) show when tournament is COMPLETED.
 
 ---
 
@@ -275,7 +320,7 @@ README.md, context.md
 - RR/KO round counts validated at **start** against enrollment N (BR-RR-001).
 - Swiss warns (does not block) when 2 ≤ N < 4.
 - `ContentNavigator` swaps main content pane views.
-- Leaderboard button remains a placeholder until Phase 9; pairings UI shipped in Phase 5.
+- Leaderboard shipped in Phase 9; pairings UI shipped in Phase 5.
 
 ---
 
@@ -430,27 +475,13 @@ mvn javafx:run   # needs display
 
 ---
 
-## What is NOT done (Phases 7–10)
+## What is NOT done (Phase 10)
 
 Do **not** implement these until the matching phase. Full task lists live in `docs/DEVELOPMENT_PLAN.md`.
 
-### Phase 7 — next (start here)
+### Phase 10 — next (start here)
 
-Swiss first round + Dutch subsequent rounds, rematch flag, color balance.
-
-Must create: `SwissPairingStrategy`, `SwissScoreGroupBuilder`, `SwissColorAssigner`; register SWISS in `PairingStrategyFactory`.
-
-### Phase 8
-
-`ResultService.completeRound` (transactional), `RatingService` Elo K=32, results UI; call `KnockoutAdvancementService` on KO complete.
-
-### Phase 9
-
-Leaderboard tie-breaks, qualification, finalize tournament, leaderboard UI.
-
-### Phase 10
-
-Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1 acceptance.
+Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1 acceptance, confirmation dialogs, README architecture/troubleshooting.
 
 ---
 
@@ -479,6 +510,9 @@ Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Phase 9 completed. Leaderboards, tie-breaks, qualification, finalize, UI, tests. Next: Phase 10. |
+| 2026-09-16 | Phase 8 completed. Results/Elo, ResultService, results UI, tests. Next: Phase 9. |
+| 2026-09-16 | Phase 7 completed. Swiss pairing, rematch flag, color balance, tests. Next: Phase 8. |
 | 2026-09-16 | Phase 6 completed. Knockout seeding/byes, advancement service, bracket UI, tests. Next: Phase 7. |
 | 2026-09-16 | Phase 5 completed. RR circle schedule, PairingService, pairings UI, unit/integration tests. Next: Phase 6. |
 | 2026-09-16 | Phase 4 completed. Tournament/Enrollment services, validators, UI, integration tests. Next: Phase 5. |

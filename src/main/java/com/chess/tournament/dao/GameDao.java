@@ -30,6 +30,10 @@ public interface GameDao {
 
     Set<LongPair> findPreviousPairings(Connection connection, long tournamentId);
 
+    List<Game> findByTournament(long tournamentId);
+
+    List<Game> findByTournament(Connection connection, long tournamentId);
+
     boolean existsForTournament(long tournamentId);
 
     boolean existsForTournament(Connection connection, long tournamentId);

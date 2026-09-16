@@ -13,6 +13,8 @@ import com.chess.tournament.exception.ValidationException;
 import com.chess.tournament.service.dto.CreateTournamentCommand;
 import com.chess.tournament.service.validation.SwissValidator;
 import com.chess.tournament.service.validation.TournamentValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -21,11 +23,29 @@ import java.util.Optional;
 
 public final class TournamentService {
 
+    private static final Logger log = LoggerFactory.getLogger(TournamentService.class);
+
     private final TournamentDao tournamentDao;
     private final TournamentPlayerDao tournamentPlayerDao;
     private final RoundDao roundDao;
     private final UnitOfWork unitOfWork;
+    private final QualificationService qualificationService;
 
+    public TournamentService(TournamentDao tournamentDao,
+                             TournamentPlayerDao tournamentPlayerDao,
+                             RoundDao roundDao,
+                             UnitOfWork unitOfWork,
+                             QualificationService qualificationService) {
+        this.tournamentDao = Objects.requireNonNull(tournamentDao);
+        this.tournamentPlayerDao = Objects.requireNonNull(tournamentPlayerDao);
+        this.roundDao = Objects.requireNonNull(roundDao);
+        this.unitOfWork = Objects.requireNonNull(unitOfWork);
+        this.qualificationService = Objects.requireNonNull(qualificationService);
+    }
+
+    /**
+     * Backward-compatible constructor for tests that do not exercise finalize.
+     */
     public TournamentService(TournamentDao tournamentDao,
                              TournamentPlayerDao tournamentPlayerDao,
                              RoundDao roundDao,
@@ -34,6 +54,7 @@ public final class TournamentService {
         this.tournamentPlayerDao = Objects.requireNonNull(tournamentPlayerDao);
         this.roundDao = Objects.requireNonNull(roundDao);
         this.unitOfWork = Objects.requireNonNull(unitOfWork);
+        this.qualificationService = null;
     }
 
     public Tournament create(CreateTournamentCommand command) {
@@ -99,6 +120,62 @@ public final class TournamentService {
                     + enrolled + ")");
         }
         return Optional.empty();
+    }
+
+    /**
+     * Finalizes an ACTIVE tournament when all planned rounds are COMPLETED:
+     * applies qualification and sets status COMPLETED.
+     */
+    public void finalizeTournament(long tournamentId) {
+        if (qualificationService == null) {
+            throw new IllegalStateException("QualificationService is not configured");
+        }
+
+        Tournament tournament = tournamentDao.findById(tournamentId)
+                .orElseThrow(() -> new NotFoundException("Tournament not found: " + tournamentId));
+
+        if (tournament.getStatus() != TournamentStatus.ACTIVE) {
+            throw new ValidationException("Only ACTIVE tournaments can be finalized");
+        }
+        if (!areAllRoundsComplete(tournament)) {
+            throw new ValidationException(
+                    "Cannot finalize: all " + tournament.getRoundsPlanned()
+                            + " planned rounds must be COMPLETED");
+        }
+
+        // Qualify while still ACTIVE, then mark COMPLETED (FR-QLF-002)
+        qualificationService.applyQualification(tournamentId);
+
+        Instant completedAt = Instant.now();
+        unitOfWork.executeInTransaction(connection -> {
+            tournamentDao.updateStatus(connection, tournamentId, TournamentStatus.COMPLETED,
+                    tournament.getStartedAt(), completedAt);
+            return null;
+        });
+        log.info("Finalized tournament {}", tournamentId);
+    }
+
+    public boolean areAllRoundsComplete(long tournamentId) {
+        Tournament tournament = tournamentDao.findById(tournamentId)
+                .orElseThrow(() -> new NotFoundException("Tournament not found: " + tournamentId));
+        return areAllRoundsComplete(tournament);
+    }
+
+    private boolean areAllRoundsComplete(Tournament tournament) {
+        List<Round> rounds = roundDao.findByTournament(tournament.getId());
+        if (rounds.size() < tournament.getRoundsPlanned()) {
+            return false;
+        }
+        for (int n = 1; n <= tournament.getRoundsPlanned(); n++) {
+            final int roundNumber = n;
+            Optional<Round> round = rounds.stream()
+                    .filter(r -> r.getRoundNumber() == roundNumber)
+                    .findFirst();
+            if (round.isEmpty() || round.get().getStatus() != RoundStatus.COMPLETED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int enrolledCount(long tournamentId) {

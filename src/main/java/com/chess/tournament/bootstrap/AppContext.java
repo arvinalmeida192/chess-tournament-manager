@@ -15,8 +15,10 @@ import com.chess.tournament.dao.impl.JdbcTournamentDao;
 import com.chess.tournament.dao.impl.JdbcTournamentPlayerDao;
 import com.chess.tournament.service.EnrollmentService;
 import com.chess.tournament.service.KnockoutAdvancementService;
+import com.chess.tournament.service.LeaderboardService;
 import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.PlayerService;
+import com.chess.tournament.service.QualificationService;
 import com.chess.tournament.service.RatingService;
 import com.chess.tournament.service.ResultService;
 import com.chess.tournament.service.TournamentService;
@@ -54,6 +56,8 @@ public final class AppContext implements AutoCloseable {
     private final KnockoutAdvancementService knockoutAdvancementService;
     private final RatingService ratingService;
     private final ResultService resultService;
+    private final LeaderboardService leaderboardService;
+    private final QualificationService qualificationService;
 
     private AppContext(DatabaseConfig databaseConfig, HikariDataSource dataSource) {
         this.databaseConfig = databaseConfig;
@@ -65,8 +69,12 @@ public final class AppContext implements AutoCloseable {
         this.gameDao = new JdbcGameDao(dataSource);
         this.unitOfWork = new JdbcUnitOfWork(dataSource);
         this.playerService = new PlayerService(playerDao);
+        this.leaderboardService = new LeaderboardService(
+                tournamentDao, tournamentPlayerDao, roundDao, gameDao, playerDao);
+        this.qualificationService = new QualificationService(
+                tournamentDao, tournamentPlayerDao, leaderboardService, unitOfWork);
         this.tournamentService = new TournamentService(
-                tournamentDao, tournamentPlayerDao, roundDao, unitOfWork);
+                tournamentDao, tournamentPlayerDao, roundDao, unitOfWork, qualificationService);
         this.enrollmentService = new EnrollmentService(
                 tournamentDao, tournamentPlayerDao, playerDao, roundDao, gameDao);
         this.pairingService = new PairingService(
@@ -157,6 +165,14 @@ public final class AppContext implements AutoCloseable {
 
     public ResultService getResultService() {
         return resultService;
+    }
+
+    public LeaderboardService getLeaderboardService() {
+        return leaderboardService;
+    }
+
+    public QualificationService getQualificationService() {
+        return qualificationService;
     }
 
     @Override
