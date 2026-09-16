@@ -16,13 +16,21 @@ public final class TournamentViewModel {
     private final Tournament tournament;
     private final int enrolledCount;
     private final Optional<Round> round1;
+    private final Optional<Round> pairableRound;
     private final boolean enrollmentLocked;
 
     public TournamentViewModel(Tournament tournament, int enrolledCount,
                                Optional<Round> round1, boolean enrollmentLocked) {
+        this(tournament, enrolledCount, round1, Optional.empty(), enrollmentLocked);
+    }
+
+    public TournamentViewModel(Tournament tournament, int enrolledCount,
+                               Optional<Round> round1, Optional<Round> pairableRound,
+                               boolean enrollmentLocked) {
         this.tournament = tournament;
         this.enrolledCount = enrolledCount;
         this.round1 = round1;
+        this.pairableRound = pairableRound;
         this.enrollmentLocked = enrollmentLocked;
     }
 
@@ -36,6 +44,10 @@ public final class TournamentViewModel {
 
     public Optional<Round> getRound1() {
         return round1;
+    }
+
+    public Optional<Round> getPairableRound() {
+        return pairableRound;
     }
 
     public boolean isEnrollmentLocked() {
@@ -59,10 +71,22 @@ public final class TournamentViewModel {
     }
 
     public boolean canGeneratePairings() {
-        // Enabled when ACTIVE and round 1 is PENDING_PAIRINGS; generation arrives in Phase 5+
-        return tournament.getStatus() == TournamentStatus.ACTIVE
-                && round1.isPresent()
-                && round1.get().getStatus() == RoundStatus.PENDING_PAIRINGS;
+        if (tournament.getStatus() != TournamentStatus.ACTIVE) {
+            return false;
+        }
+        // Phase 5: Round Robin only; KO/Swiss unlock in later phases
+        if (tournament.getType() != TournamentType.ROUND_ROBIN) {
+            return false;
+        }
+        if (pairableRound.isPresent()) {
+            return pairableRound.get().getStatus() == RoundStatus.PENDING_PAIRINGS;
+        }
+        return round1.isPresent() && round1.get().getStatus() == RoundStatus.PENDING_PAIRINGS;
+    }
+
+    /** Open pairings UI for ACTIVE tournaments that have at least round 1. */
+    public boolean canOpenPairings() {
+        return tournament.getStatus() == TournamentStatus.ACTIVE && round1.isPresent();
     }
 
     public boolean canEnterResults() {
@@ -83,6 +107,10 @@ public final class TournamentViewModel {
     }
 
     public String getCurrentRoundLabel() {
+        if (pairableRound.isPresent()) {
+            Round r = pairableRound.get();
+            return "Round " + r.getRoundNumber() + " (" + r.getStatus() + ")";
+        }
         if (round1.isEmpty()) {
             return tournament.getStatus() == TournamentStatus.DRAFT ? "Not started" : "—";
         }

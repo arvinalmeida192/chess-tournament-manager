@@ -6,6 +6,7 @@ import com.chess.tournament.domain.Round;
 import com.chess.tournament.domain.Tournament;
 import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.EnrollmentService;
+import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.ui.util.Alerts;
 import javafx.concurrent.Task;
@@ -52,6 +53,7 @@ public class TournamentDashboardController {
 
     private TournamentService tournamentService;
     private EnrollmentService enrollmentService;
+    private PairingService pairingService;
     private RoundDao roundDao;
     private long tournamentId;
     private Runnable onBack;
@@ -60,6 +62,7 @@ public class TournamentDashboardController {
     private void initialize() {
         tournamentService = AppContext.get().getTournamentService();
         enrollmentService = AppContext.get().getEnrollmentService();
+        pairingService = AppContext.get().getPairingService();
         roundDao = AppContext.get().getRoundDao();
     }
 
@@ -137,7 +140,23 @@ public class TournamentDashboardController {
 
     @FXML
     private void onPairings() {
-        Alerts.info("Pairings", "Pairing generation arrives in Phase 5.");
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/pairings.fxml"));
+            Parent root = loader.load();
+            PairingsController controller = loader.getController();
+            controller.setTournamentId(tournamentId);
+
+            Stage dialog = new Stage();
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.initOwner(titleLabel.getScene().getWindow());
+            dialog.setTitle("Pairings");
+            dialog.setScene(new Scene(root));
+            dialog.showAndWait();
+            refresh();
+        } catch (IOException e) {
+            log.error("Failed to open pairings", e);
+            Alerts.error("UI error", e.getMessage());
+        }
     }
 
     @FXML
@@ -154,8 +173,10 @@ public class TournamentDashboardController {
                         .orElseThrow(() -> new IllegalStateException("Tournament not found"));
                 int enrolled = tournamentService.enrolledCount(tournamentId);
                 Optional<Round> round1 = roundDao.findByTournamentAndNumber(tournamentId, 1);
+                Optional<Round> pairable = pairingService.findPairableRoundNumber(tournamentId)
+                        .flatMap(n -> roundDao.findByTournamentAndNumber(tournamentId, n));
                 boolean locked = enrollmentService.isEnrollmentLocked(tournamentId);
-                return new TournamentViewModel(tournament, enrolled, round1, locked);
+                return new TournamentViewModel(tournament, enrolled, round1, pairable, locked);
             }
         };
         task.setOnSucceeded(e -> {
@@ -189,7 +210,7 @@ public class TournamentDashboardController {
         // Allow opening enrollment screen when can enroll OR to view locked list
         enrollButton.setDisable(false);
         startButton.setDisable(!vm.canStart());
-        pairingsButton.setDisable(!vm.canGeneratePairings());
+        pairingsButton.setDisable(!vm.canOpenPairings());
         leaderboardButton.setDisable(!vm.canViewLeaderboard());
         statusLabel.setText(vm.isEnrollmentLocked() ? "Enrollment is locked" : "Enrollment open");
     }

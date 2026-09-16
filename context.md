@@ -24,9 +24,9 @@
 
 | Field | Value |
 |-------|--------|
-| **Last completed phase** | **Phase 4 — Tournaments & Enrollment** |
-| **Next phase to execute** | **Phase 5 — Round Robin Pairings** |
-| **Build health** | `mvn test` passes (41 tests); Testcontainers PostgreSQL 16 |
+| **Last completed phase** | **Phase 5 — Round Robin Pairings** |
+| **Next phase to execute** | **Phase 6 — Knockout Pairings & Elimination** |
+| **Build health** | `mvn test` passes (65 tests); Testcontainers PostgreSQL 16 |
 | **DB for local dev** | Docker container `ctms-postgres` (Postgres 16), port `5432` |
 | **DB credentials** | user `ctms` / password `changeme` / db `chess_tournament` (see `config/application.properties.example`) |
 
@@ -40,12 +40,58 @@
 | 2 | Domain model & data access layer | **DONE** |
 | 3 | Global player registry | **DONE** |
 | 4 | Tournaments & enrollment | **DONE** |
-| 5 | Round Robin pairings | **NOT STARTED** |
+| 5 | Round Robin pairings | **DONE** |
 | 6 | Knockout pairings & elimination | **NOT STARTED** |
 | 7 | Swiss/Dutch pairings | **NOT STARTED** |
 | 8 | Results, scoring & Elo ratings | **NOT STARTED** |
 | 9 | Leaderboards & qualification | **NOT STARTED** |
 | 10 | End-to-end UI & release hardening | **NOT STARTED** |
+
+---
+
+## What Phase 5 delivered (DONE)
+
+### Files created
+
+```text
+src/main/java/com/chess/tournament/service/
+  PairingService.java
+  pairing/PairingStrategy.java, PairingContext.java, PairingProposal.java,
+         PairingStrategyFactory.java, RoundRobinScheduleGenerator.java,
+         RoundRobinPairingStrategy.java
+src/main/java/com/chess/tournament/ui/tournament/PairingsController.java
+src/main/resources/fxml/pairings.fxml
+src/test/java/.../service/pairing/RoundRobinScheduleGeneratorTest.java
+src/test/java/.../service/pairing/RoundRobinPairingStrategyTest.java
+src/test/java/.../integration/RoundRobinPairingIntegrationTest.java
+docs/manual/phase5-round-robin.md
+```
+
+### Files updated
+
+```text
+AppContext                          ← PairingService + PairingStrategyFactory
+TournamentDashboardController       ← opens pairings.fxml
+TournamentViewModel                 ← canOpenPairings / RR canGeneratePairings
+README.md, context.md, phase4 manual checklist
+```
+
+### Behaviors verified
+
+- [x] Circle-method RR schedule: N=4,5,6 unique pairs = N*(N-1)/2; each player once per round
+- [x] PairingService.generateAndPublish inserts games, sets PAIRINGS_PUBLISHED + paired_at
+- [x] Odd N: bye game with result BYE, white_score=1, black null
+- [x] Round >1 requires previous COMPLETED; creates next round row when needed
+- [x] Dashboard Generate Pairings for ACTIVE RR; pairings table Board | White | Black
+- [x] Integration: publish all RR rounds sequentially covers full schedule
+- [x] `mvn test` — 65 tests pass
+
+### Design notes from Phase 5 (keep)
+
+- Players ordered by tournament_player.id (enrollment order) for deterministic schedule.
+- Colors alternate by round (odd: left-half white; even: swapped).
+- Only ROUND_ROBIN registered in PairingStrategyFactory; KO/Swiss arrive in Phases 6–7.
+- Subsequent rounds after R1 need previous COMPLETED (Phase 8 will complete rounds in UI).
 
 ---
 
@@ -97,7 +143,7 @@ README.md, context.md
 - RR/KO round counts validated at **start** against enrollment N (BR-RR-001).
 - Swiss warns (does not block) when 2 ≤ N < 4.
 - `ContentNavigator` swaps main content pane views.
-- Pairings / Leaderboard buttons are placeholders until Phases 5 / 9.
+- Leaderboard button remains a placeholder until Phase 9; pairings UI shipped in Phase 5.
 
 ---
 
@@ -252,19 +298,15 @@ mvn javafx:run   # needs display
 
 ---
 
-## What is NOT done (Phases 5–10)
+## What is NOT done (Phases 6–10)
 
 Do **not** implement these until the matching phase. Full task lists live in `docs/DEVELOPMENT_PLAN.md`.
 
-### Phase 5 — next (start here)
-
-Goal: Round Robin schedule generator + pairing strategy + `PairingService` publish; enable Generate Pairings on dashboard for RR.
-
-Must create: `RoundRobinScheduleGenerator`, `RoundRobinPairingStrategy`, `PairingStrategyFactory`, `PairingContext`, `PairingProposal`, `PairingService`, `pairings.fxml`.
-
-### Phase 6
+### Phase 6 — next (start here)
 
 Knockout strategy, seeding, byes, advancement/loser hooks.
+
+Must create: `KnockoutPairingStrategy`, `KnockoutSeeding`, `KnockoutAdvancementService`, `knockout_bracket.fxml`; register KO in `PairingStrategyFactory`.
 
 ### Phase 7
 
@@ -309,6 +351,7 @@ Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Phase 5 completed. RR circle schedule, PairingService, pairings UI, unit/integration tests. Next: Phase 6. |
 | 2026-09-16 | Phase 4 completed. Tournament/Enrollment services, validators, UI, integration tests. Next: Phase 5. |
 | 2026-09-16 | Phase 3 completed. PlayerService + Players UI (list/form), AppContext wiring, unit tests, manual checklist. Next: Phase 4. |
 | 2026-09-16 | Phase 2 completed. Domain model, JDBC DAOs, UnitOfWork, integration tests. Next: Phase 3. |

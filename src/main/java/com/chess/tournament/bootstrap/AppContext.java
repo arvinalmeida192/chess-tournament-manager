@@ -14,8 +14,10 @@ import com.chess.tournament.dao.impl.JdbcRoundDao;
 import com.chess.tournament.dao.impl.JdbcTournamentDao;
 import com.chess.tournament.dao.impl.JdbcTournamentPlayerDao;
 import com.chess.tournament.service.EnrollmentService;
+import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.PlayerService;
 import com.chess.tournament.service.TournamentService;
+import com.chess.tournament.service.pairing.PairingStrategyFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.flywaydb.core.Flyway;
@@ -45,6 +47,7 @@ public final class AppContext implements AutoCloseable {
     private final PlayerService playerService;
     private final TournamentService tournamentService;
     private final EnrollmentService enrollmentService;
+    private final PairingService pairingService;
 
     private AppContext(DatabaseConfig databaseConfig, HikariDataSource dataSource) {
         this.databaseConfig = databaseConfig;
@@ -60,6 +63,9 @@ public final class AppContext implements AutoCloseable {
                 tournamentDao, tournamentPlayerDao, roundDao, unitOfWork);
         this.enrollmentService = new EnrollmentService(
                 tournamentDao, tournamentPlayerDao, playerDao, roundDao, gameDao);
+        this.pairingService = new PairingService(
+                tournamentDao, tournamentPlayerDao, roundDao, gameDao, unitOfWork,
+                new PairingStrategyFactory());
     }
 
     public static synchronized AppContext initialize() {
@@ -123,6 +129,10 @@ public final class AppContext implements AutoCloseable {
 
     public EnrollmentService getEnrollmentService() {
         return enrollmentService;
+    }
+
+    public PairingService getPairingService() {
+        return pairingService;
     }
 
     @Override

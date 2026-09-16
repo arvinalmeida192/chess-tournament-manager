@@ -69,6 +69,7 @@ On success, the main window shows **Connected to database**. Use **Players → M
 Manual checklists:
 - [docs/manual/phase3-players.md](docs/manual/phase3-players.md)
 - [docs/manual/phase4-tournaments.md](docs/manual/phase4-tournaments.md)
+- [docs/manual/phase5-round-robin.md](docs/manual/phase5-round-robin.md)
 
 ## Tests
 

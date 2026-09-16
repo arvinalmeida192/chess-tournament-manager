@@ -16,7 +16,7 @@
 7. Try **Start** on RR with only 2 enrolled → expect validation error (need ≥3).
 8. After start, open enrollment → still open while round 1 is PENDING_PAIRINGS; enroll one more if desired.
 9. Status filter: DRAFT / ACTIVE on tournament list.
-10. Generate Pairings / Leaderboard buttons show Phase 5/9 placeholders.
+10. Generate Pairings opens the pairings dialog (Phase 5 for Round Robin).
 
 ## SRS coverage
 
