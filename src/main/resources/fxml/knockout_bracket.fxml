@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.chess.tournament.ui.tournament.KnockoutBracketController"
+            prefWidth="860" prefHeight="520">
+    <top>
+        <VBox spacing="6">
+            <padding>
+                <Insets top="12" right="12" bottom="8" left="12"/>
+            </padding>
+            <Label fx:id="titleLabel" text="Knockout Bracket">
+                <font>
+                    <Font name="System Bold" size="18"/>
+                </font>
+            </Label>
+            <Label text="Games grouped by round. Winners appear after results (Phase 8)."/>
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="8">
+            <padding>
+                <Insets top="4" right="12" bottom="8" left="12"/>
+            </padding>
+            <TableView fx:id="bracketTable" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="roundColumn" text="Round" prefWidth="70"/>
+                    <TableColumn fx:id="boardColumn" text="Board" prefWidth="70"/>
+                    <TableColumn fx:id="whiteColumn" text="White" prefWidth="180"/>
+                    <TableColumn fx:id="blackColumn" text="Black" prefWidth="180"/>
+                    <TableColumn fx:id="resultColumn" text="Result" prefWidth="100"/>
+                    <TableColumn fx:id="winnerColumn" text="Winner" prefWidth="200"/>
+                </columns>
+            </TableView>
+        </VBox>
+    </center>
+    <bottom>
+        <HBox spacing="8" alignment="CENTER_RIGHT">
+            <padding>
+                <Insets top="0" right="12" bottom="12" left="12"/>
+            </padding>
+            <Label fx:id="statusLabel" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            <Button fx:id="generateButton" text="Generate &amp; Publish" onAction="#onGenerate"/>
+            <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
+            <Button text="Close" onAction="#onClose"/>
+        </HBox>
+    </bottom>
+</BorderPane>

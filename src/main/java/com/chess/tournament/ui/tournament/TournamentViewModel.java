@@ -74,8 +74,8 @@ public final class TournamentViewModel {
         if (tournament.getStatus() != TournamentStatus.ACTIVE) {
             return false;
         }
-        // Phase 5: Round Robin only; KO/Swiss unlock in later phases
-        if (tournament.getType() != TournamentType.ROUND_ROBIN) {
+        // Phase 5–6: Round Robin and Knockout; Swiss unlocks in Phase 7
+        if (tournament.getType() == TournamentType.SWISS) {
             return false;
         }
         if (pairableRound.isPresent()) {

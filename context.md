@@ -24,9 +24,9 @@
 
 | Field | Value |
 |-------|--------|
-| **Last completed phase** | **Phase 5 — Round Robin Pairings** |
-| **Next phase to execute** | **Phase 6 — Knockout Pairings & Elimination** |
-| **Build health** | `mvn test` passes (65 tests); Testcontainers PostgreSQL 16 |
+| **Last completed phase** | **Phase 6 — Knockout Pairings & Elimination** |
+| **Next phase to execute** | **Phase 7 — Swiss/Dutch Pairings** |
+| **Build health** | `mvn test` passes (84 tests); Testcontainers PostgreSQL 16 |
 | **DB for local dev** | Docker container `ctms-postgres` (Postgres 16), port `5432` |
 | **DB credentials** | user `ctms` / password `changeme` / db `chess_tournament` (see `config/application.properties.example`) |
 
@@ -41,11 +41,57 @@
 | 3 | Global player registry | **DONE** |
 | 4 | Tournaments & enrollment | **DONE** |
 | 5 | Round Robin pairings | **DONE** |
-| 6 | Knockout pairings & elimination | **NOT STARTED** |
+| 6 | Knockout pairings & elimination | **DONE** |
 | 7 | Swiss/Dutch pairings | **NOT STARTED** |
 | 8 | Results, scoring & Elo ratings | **NOT STARTED** |
 | 9 | Leaderboards & qualification | **NOT STARTED** |
 | 10 | End-to-end UI & release hardening | **NOT STARTED** |
+
+---
+
+## What Phase 6 delivered (DONE)
+
+### Files created
+
+```text
+src/main/java/com/chess/tournament/service/
+  KnockoutAdvancementService.java
+  pairing/KnockoutSeeding.java, KnockoutPairingStrategy.java
+src/main/java/com/chess/tournament/ui/tournament/KnockoutBracketController.java
+src/main/resources/fxml/knockout_bracket.fxml
+src/test/java/.../service/KnockoutAdvancementServiceTest.java
+src/test/java/.../service/pairing/KnockoutSeedingTest.java
+src/test/java/.../service/pairing/KnockoutPairingStrategyTest.java
+src/test/java/.../integration/KnockoutPairingIntegrationTest.java
+docs/manual/phase6-knockout.md
+```
+
+### Files updated
+
+```text
+PairingContext                      ← previousRoundGames
+PairingService                      ← KO multi-bye + partial-field validation
+PairingStrategyFactory              ← registers KnockoutPairingStrategy
+AppContext                          ← KnockoutAdvancementService
+TournamentViewModel / Dashboard / PairingsController
+PairingContext call sites (RR tests)
+README.md, context.md, phase5 manual
+```
+
+### Behaviors verified
+
+- [x] Standard power-of-two bracket seeding; BR-KO-001 lowest-rated byes
+- [x] 8 players → 4 R1 games; 6 players → 2 byes + 2 games
+- [x] Round 2 pairs adjacent winners from previous board order
+- [x] KnockoutAdvancementService.markLosers → ELIMINATED
+- [x] Bracket UI groups games by round with winner placeholder
+- [x] `mvn test` — 84 tests pass
+
+### Design notes from Phase 6 (keep)
+
+- Bye slots come from phantom seeds; lowest-rated players are assigned into those slots.
+- `KnockoutAdvancementService` is wired for Phase 8 `ResultService.completeRound`.
+- Draws are rejected in KO advancement/pairing paths.
 
 ---
 
@@ -90,7 +136,7 @@ README.md, context.md, phase4 manual checklist
 
 - Players ordered by tournament_player.id (enrollment order) for deterministic schedule.
 - Colors alternate by round (odd: left-half white; even: swapped).
-- Only ROUND_ROBIN registered in PairingStrategyFactory; KO/Swiss arrive in Phases 6–7.
+- ROUND_ROBIN and KNOCKOUT registered in PairingStrategyFactory; Swiss arrives in Phase 7.
 - Subsequent rounds after R1 need previous COMPLETED (Phase 8 will complete rounds in UI).
 
 ---
@@ -298,23 +344,19 @@ mvn javafx:run   # needs display
 
 ---
 
-## What is NOT done (Phases 6–10)
+## What is NOT done (Phases 7–10)
 
 Do **not** implement these until the matching phase. Full task lists live in `docs/DEVELOPMENT_PLAN.md`.
 
-### Phase 6 — next (start here)
-
-Knockout strategy, seeding, byes, advancement/loser hooks.
-
-Must create: `KnockoutPairingStrategy`, `KnockoutSeeding`, `KnockoutAdvancementService`, `knockout_bracket.fxml`; register KO in `PairingStrategyFactory`.
-
-### Phase 7
+### Phase 7 — next (start here)
 
 Swiss first round + Dutch subsequent rounds, rematch flag, color balance.
 
+Must create: `SwissPairingStrategy`, `SwissScoreGroupBuilder`, `SwissColorAssigner`; register SWISS in `PairingStrategyFactory`.
+
 ### Phase 8
 
-`ResultService.completeRound` (transactional), `RatingService` Elo K=32, results UI.
+`ResultService.completeRound` (transactional), `RatingService` Elo K=32, results UI; call `KnockoutAdvancementService` on KO complete.
 
 ### Phase 9
 
@@ -351,6 +393,7 @@ Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Phase 6 completed. Knockout seeding/byes, advancement service, bracket UI, tests. Next: Phase 7. |
 | 2026-09-16 | Phase 5 completed. RR circle schedule, PairingService, pairings UI, unit/integration tests. Next: Phase 6. |
 | 2026-09-16 | Phase 4 completed. Tournament/Enrollment services, validators, UI, integration tests. Next: Phase 5. |
 | 2026-09-16 | Phase 3 completed. PlayerService + Players UI (list/form), AppContext wiring, unit tests, manual checklist. Next: Phase 4. |

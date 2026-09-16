@@ -2,11 +2,14 @@ package com.chess.tournament.ui.tournament;
 
 import com.chess.tournament.bootstrap.AppContext;
 import com.chess.tournament.dao.PlayerDao;
+import com.chess.tournament.dao.RoundDao;
 import com.chess.tournament.dao.TournamentPlayerDao;
 import com.chess.tournament.domain.Game;
 import com.chess.tournament.domain.Player;
+import com.chess.tournament.domain.Round;
 import com.chess.tournament.domain.Tournament;
 import com.chess.tournament.domain.TournamentPlayer;
+import com.chess.tournament.domain.enums.GameResult;
 import com.chess.tournament.domain.enums.TournamentType;
 import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.PairingService;
@@ -25,31 +28,38 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class PairingsController {
+/**
+ * Knockout bracket view: games grouped by round (FR-KO-003).
+ * Winner column shows a placeholder until results are entered (Phase 8).
+ */
+public class KnockoutBracketController {
 
-    private static final Logger log = LoggerFactory.getLogger(PairingsController.class);
+    private static final Logger log = LoggerFactory.getLogger(KnockoutBracketController.class);
 
     @FXML
     private Label titleLabel;
     @FXML
-    private Label roundLabel;
-    @FXML
     private Label statusLabel;
     @FXML
-    private TableView<PairingRow> pairingsTable;
+    private TableView<BracketRow> bracketTable;
     @FXML
-    private TableColumn<PairingRow, Number> boardColumn;
+    private TableColumn<BracketRow, Number> roundColumn;
     @FXML
-    private TableColumn<PairingRow, String> whiteColumn;
+    private TableColumn<BracketRow, Number> boardColumn;
     @FXML
-    private TableColumn<PairingRow, String> blackColumn;
+    private TableColumn<BracketRow, String> whiteColumn;
     @FXML
-    private TableColumn<PairingRow, String> resultColumn;
+    private TableColumn<BracketRow, String> blackColumn;
+    @FXML
+    private TableColumn<BracketRow, String> resultColumn;
+    @FXML
+    private TableColumn<BracketRow, String> winnerColumn;
     @FXML
     private Button generateButton;
     @FXML
@@ -59,8 +69,8 @@ public class PairingsController {
     private TournamentService tournamentService;
     private TournamentPlayerDao tournamentPlayerDao;
     private PlayerDao playerDao;
+    private RoundDao roundDao;
     private long tournamentId;
-    private int roundNumber;
 
     @FXML
     private void initialize() {
@@ -68,52 +78,35 @@ public class PairingsController {
         tournamentService = AppContext.get().getTournamentService();
         tournamentPlayerDao = AppContext.get().getTournamentPlayerDao();
         playerDao = AppContext.get().getPlayerDao();
+        roundDao = AppContext.get().getRoundDao();
 
+        roundColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().round()));
         boardColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().board()));
         whiteColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().white()));
         blackColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().black()));
         resultColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().result()));
+        winnerColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().winner()));
     }
 
     public void setTournamentId(long tournamentId) {
         this.tournamentId = tournamentId;
         Tournament tournament = tournamentService.findById(tournamentId).orElseThrow();
-        titleLabel.setText("Pairings — " + tournament.getName());
-
-        Optional<Integer> pairable = pairingService.findPairableRoundNumber(tournamentId);
-        if (pairable.isPresent()) {
-            this.roundNumber = pairable.get();
-        } else {
-            // Show latest round that has games, else round 1
-            this.roundNumber = 1;
-            List<Game> existing = safeListGames(1);
-            if (!existing.isEmpty()) {
-                this.roundNumber = 1;
-            }
-        }
+        titleLabel.setText("Knockout Bracket — " + tournament.getName());
         refresh();
     }
 
     @FXML
     private void onGenerate() {
-        Tournament tournament = tournamentService.findById(tournamentId).orElseThrow();
-        if (tournament.getType() != TournamentType.ROUND_ROBIN
-                && tournament.getType() != TournamentType.KNOCKOUT) {
-            Alerts.info("Pairings", "Swiss pairings arrive in Phase 7.");
-            return;
-        }
         Optional<Integer> pairable = pairingService.findPairableRoundNumber(tournamentId);
         if (pairable.isEmpty()) {
-            Alerts.info("Pairings", "No round is ready for pairing generation.");
+            Alerts.info("Bracket", "No round is ready for pairing generation.");
             return;
         }
         int targetRound = pairable.get();
         if (!Alerts.confirm("Generate pairings",
-                "Generate and publish " + tournament.getType() + " pairings for round "
-                        + targetRound + "?")) {
+                "Generate and publish Knockout pairings for round " + targetRound + "?")) {
             return;
         }
-
         setBusy(true);
         Task<List<Game>> task = new Task<>() {
             @Override
@@ -123,18 +116,17 @@ public class PairingsController {
         };
         task.setOnSucceeded(e -> {
             setBusy(false);
-            roundNumber = targetRound;
-            statusLabel.setText("Published " + task.getValue().size() + " boards for round " + targetRound);
+            statusLabel.setText("Published round " + targetRound);
             refresh();
         });
         task.setOnFailed(e -> {
             setBusy(false);
             Throwable error = task.getException();
-            log.error("Failed to publish pairings", error);
+            log.error("Failed to publish KO pairings", error);
             String message = error instanceof DomainException ? error.getMessage() : error.getMessage();
             Alerts.error("Pairings failed", message);
         });
-        new Thread(task, "publish-pairings").start();
+        new Thread(task, "publish-ko-pairings").start();
     }
 
     @FXML
@@ -154,51 +146,62 @@ public class PairingsController {
             @Override
             protected RefreshData call() {
                 Tournament tournament = tournamentService.findById(tournamentId).orElseThrow();
-                Optional<Integer> pairable = pairingService.findPairableRoundNumber(tournamentId);
-                int displayRound = pairable.orElse(roundNumber);
-                List<Game> games = pairingService.listGamesForRound(tournamentId, displayRound);
-                if (games.isEmpty() && pairable.isEmpty() && displayRound != 1) {
-                    games = pairingService.listGamesForRound(tournamentId, 1);
-                    displayRound = 1;
+                if (tournament.getType() != TournamentType.KNOCKOUT) {
+                    throw new IllegalStateException("Bracket view is for Knockout tournaments");
                 }
                 Map<Long, String> names = resolveNames(tournamentId);
-                List<PairingRow> rows = new ArrayList<>();
-                for (Game g : games) {
-                    String white = nameOf(g.getWhiteTournamentPlayerId(), names);
-                    String black = g.getBlackTournamentPlayerId() == null
-                            ? "— BYE —"
-                            : nameOf(g.getBlackTournamentPlayerId(), names);
-                    rows.add(new PairingRow(g.getBoardNumber(), white, black,
-                            g.getResult() == null ? "" : g.getResult().name()));
+                List<Round> rounds = roundDao.findByTournament(tournamentId);
+                List<BracketRow> rows = new ArrayList<>();
+                for (Round round : rounds) {
+                    List<Game> games = pairingService.listGamesForRound(tournamentId, round.getRoundNumber());
+                    for (Game g : games) {
+                        String white = nameOf(g.getWhiteTournamentPlayerId(), names);
+                        String black = g.getBlackTournamentPlayerId() == null
+                                ? "— BYE —"
+                                : nameOf(g.getBlackTournamentPlayerId(), names);
+                        rows.add(new BracketRow(
+                                round.getRoundNumber(),
+                                g.getBoardNumber(),
+                                white,
+                                black,
+                                g.getResult() == null ? "" : g.getResult().name(),
+                                winnerLabel(g, names)));
+                    }
                 }
-                boolean canGenerate = pairable.isPresent()
-                        && (tournament.getType() == TournamentType.ROUND_ROBIN
-                        || tournament.getType() == TournamentType.KNOCKOUT);
-                return new RefreshData(displayRound, rows, canGenerate, tournament.getType());
+                rows.sort(Comparator.comparingInt(BracketRow::round)
+                        .thenComparingInt(BracketRow::board));
+                boolean canGenerate = pairingService.findPairableRoundNumber(tournamentId).isPresent();
+                return new RefreshData(rows, canGenerate);
             }
         };
         task.setOnSucceeded(e -> {
             setBusy(false);
             RefreshData data = task.getValue();
-            roundNumber = data.displayRound();
-            roundLabel.setText("Round " + data.displayRound()
-                    + "  |  Type: " + data.type());
-            pairingsTable.getItems().setAll(data.rows());
+            bracketTable.getItems().setAll(data.rows());
             generateButton.setDisable(!data.canGenerate());
-            if (data.rows().isEmpty() && data.canGenerate()) {
-                statusLabel.setText("Ready to generate pairings for round " + data.displayRound());
-            } else if (data.rows().isEmpty()) {
-                statusLabel.setText("No pairings published yet");
-            } else {
-                statusLabel.setText(data.rows().size() + " board(s)");
-            }
+            statusLabel.setText(data.rows().isEmpty()
+                    ? "No bracket games yet — generate round 1 pairings"
+                    : data.rows().size() + " game(s) across bracket");
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            log.error("Failed to load pairings", task.getException());
+            log.error("Failed to load bracket", task.getException());
             Alerts.error("Load failed", task.getException().getMessage());
         });
-        new Thread(task, "load-pairings").start();
+        new Thread(task, "load-ko-bracket").start();
+    }
+
+    private static String winnerLabel(Game g, Map<Long, String> names) {
+        GameResult result = g.getResult();
+        if (result == null || result == GameResult.PENDING) {
+            return "(pending results — Phase 8)";
+        }
+        return switch (result) {
+            case BYE, WHITE_WIN -> nameOf(g.getWhiteTournamentPlayerId(), names);
+            case BLACK_WIN -> nameOf(g.getBlackTournamentPlayerId(), names);
+            case DRAW -> "(draw — invalid for KO)";
+            case PENDING -> "(pending results — Phase 8)";
+        };
     }
 
     private Map<Long, String> resolveNames(long tournamentId) {
@@ -208,7 +211,7 @@ public class PairingsController {
             String name = playerDao.findById(tp.getPlayerId())
                     .map(Player::getName)
                     .orElse("Player#" + tp.getPlayerId());
-            names.put(tp.getId(), name + " (TP " + tp.getId() + ")");
+            names.put(tp.getId(), name);
         }
         return names;
     }
@@ -220,14 +223,6 @@ public class PairingsController {
         return names.getOrDefault(tpId, "TP " + tpId);
     }
 
-    private List<Game> safeListGames(int round) {
-        try {
-            return pairingService.listGamesForRound(tournamentId, round);
-        } catch (RuntimeException e) {
-            return List.of();
-        }
-    }
-
     private void setBusy(boolean busy) {
         refreshButton.setDisable(busy);
         if (busy) {
@@ -235,10 +230,10 @@ public class PairingsController {
         }
     }
 
-    public record PairingRow(int board, String white, String black, String result) {
+    public record BracketRow(int round, int board, String white, String black,
+                             String result, String winner) {
     }
 
-    private record RefreshData(int displayRound, List<PairingRow> rows,
-                               boolean canGenerate, TournamentType type) {
+    private record RefreshData(List<BracketRow> rows, boolean canGenerate) {
     }
 }

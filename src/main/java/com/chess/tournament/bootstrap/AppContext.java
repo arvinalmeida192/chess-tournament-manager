@@ -14,6 +14,7 @@ import com.chess.tournament.dao.impl.JdbcRoundDao;
 import com.chess.tournament.dao.impl.JdbcTournamentDao;
 import com.chess.tournament.dao.impl.JdbcTournamentPlayerDao;
 import com.chess.tournament.service.EnrollmentService;
+import com.chess.tournament.service.KnockoutAdvancementService;
 import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.PlayerService;
 import com.chess.tournament.service.TournamentService;
@@ -48,6 +49,7 @@ public final class AppContext implements AutoCloseable {
     private final TournamentService tournamentService;
     private final EnrollmentService enrollmentService;
     private final PairingService pairingService;
+    private final KnockoutAdvancementService knockoutAdvancementService;
 
     private AppContext(DatabaseConfig databaseConfig, HikariDataSource dataSource) {
         this.databaseConfig = databaseConfig;
@@ -66,6 +68,8 @@ public final class AppContext implements AutoCloseable {
         this.pairingService = new PairingService(
                 tournamentDao, tournamentPlayerDao, roundDao, gameDao, unitOfWork,
                 new PairingStrategyFactory());
+        this.knockoutAdvancementService = new KnockoutAdvancementService(
+                tournamentPlayerDao, unitOfWork);
     }
 
     public static synchronized AppContext initialize() {
@@ -133,6 +137,10 @@ public final class AppContext implements AutoCloseable {
 
     public PairingService getPairingService() {
         return pairingService;
+    }
+
+    public KnockoutAdvancementService getKnockoutAdvancementService() {
+        return knockoutAdvancementService;
     }
 
     @Override

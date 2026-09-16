@@ -11,8 +11,10 @@ import com.chess.tournament.domain.Round;
 import com.chess.tournament.domain.Tournament;
 import com.chess.tournament.domain.TournamentPlayer;
 import com.chess.tournament.domain.enums.GameResult;
+import com.chess.tournament.domain.enums.QualificationStatus;
 import com.chess.tournament.domain.enums.RoundStatus;
 import com.chess.tournament.domain.enums.TournamentStatus;
+import com.chess.tournament.domain.enums.TournamentType;
 import com.chess.tournament.exception.NotFoundException;
 import com.chess.tournament.exception.ValidationException;
 import com.chess.tournament.service.pairing.PairingContext;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Generates and publishes round pairings via format-specific strategies (SDD §7.4).
@@ -63,7 +66,7 @@ public final class PairingService {
         LoadedContext loaded = loadAndValidate(tournamentId, roundNumber);
         PairingStrategy strategy = strategyFactory.forType(loaded.tournament().getType());
         List<PairingProposal> proposals = strategy.pair(loaded.context());
-        validateProposals(proposals, loaded.players());
+        validateProposals(proposals, loaded.players(), loaded.tournament().getType(), roundNumber);
         return proposals;
     }
 
@@ -82,7 +85,7 @@ public final class PairingService {
 
     public void publishPairings(long tournamentId, int roundNumber, List<PairingProposal> proposals) {
         LoadedContext loaded = loadAndValidate(tournamentId, roundNumber);
-        validateProposals(proposals, loaded.players());
+        validateProposals(proposals, loaded.players(), loaded.tournament().getType(), roundNumber);
 
         Instant pairedAt = Instant.now();
         unitOfWork.executeInTransaction(connection -> {
@@ -101,6 +104,15 @@ public final class PairingService {
                 .orElseThrow(() -> new NotFoundException(
                         "Round " + roundNumber + " not found for tournament " + tournamentId));
         return gameDao.findByRound(round.getId());
+    }
+
+    public List<Game> listAllGames(long tournamentId) {
+        List<Round> rounds = roundDao.findByTournament(tournamentId);
+        List<Game> all = new ArrayList<>();
+        for (Round round : rounds) {
+            all.addAll(gameDao.findByRound(round.getId()));
+        }
+        return all;
     }
 
     /**
@@ -133,6 +145,7 @@ public final class PairingService {
                             + round.getStatus() + ")");
         }
 
+        List<Game> previousRoundGames = List.of();
         if (roundNumber > 1) {
             Round previous = roundDao.findByTournamentAndNumber(tournamentId, roundNumber - 1)
                     .orElseThrow(() -> new ValidationException(
@@ -142,6 +155,7 @@ public final class PairingService {
                         "Cannot pair round " + roundNumber
                                 + " until round " + (roundNumber - 1) + " is COMPLETED");
             }
+            previousRoundGames = gameDao.findByRound(previous.getId());
         }
 
         List<TournamentPlayer> players = tournamentPlayerDao.findByTournament(tournamentId);
@@ -151,7 +165,7 @@ public final class PairingService {
 
         Set<LongPair> previousPairings = gameDao.findPreviousPairings(tournamentId);
         PairingContext context = new PairingContext(
-                tournament, roundNumber, players, previousPairings, List.of());
+                tournament, roundNumber, players, previousPairings, List.of(), previousRoundGames);
         return new LoadedContext(tournament, round, players, context);
     }
 
@@ -192,15 +206,21 @@ public final class PairingService {
                 .orElseThrow(() -> new NotFoundException("Tournament not found: " + tournamentId));
     }
 
-    private static void validateProposals(List<PairingProposal> proposals,
-                                          List<TournamentPlayer> players) {
+    static void validateProposals(List<PairingProposal> proposals,
+                                  List<TournamentPlayer> players,
+                                  TournamentType type,
+                                  int roundNumber) {
         if (proposals == null || proposals.isEmpty()) {
             throw new ValidationException("No pairings to publish");
         }
-        Set<Long> enrolled = new HashSet<>();
-        for (TournamentPlayer tp : players) {
-            enrolled.add(tp.getId());
-        }
+        Set<Long> enrolled = players.stream()
+                .map(TournamentPlayer::getId)
+                .collect(Collectors.toSet());
+        Set<Long> active = players.stream()
+                .filter(tp -> tp.getQualificationStatus() != QualificationStatus.ELIMINATED)
+                .map(TournamentPlayer::getId)
+                .collect(Collectors.toSet());
+
         Set<Long> seen = new HashSet<>();
         Set<Integer> boards = new HashSet<>();
         int byeCount = 0;
@@ -218,12 +238,33 @@ public final class PairingService {
             }
         }
 
-        if (byeCount > 1) {
-            throw new ValidationException("At most one bye per round");
-        }
-        if (seen.size() != enrolled.size()) {
-            throw new ValidationException(
-                    "Pairings must include every enrolled player exactly once");
+        if (type == TournamentType.KNOCKOUT) {
+            if (roundNumber == 1) {
+                if (seen.size() != enrolled.size()) {
+                    throw new ValidationException(
+                            "Knockout round 1 must include every enrolled player exactly once");
+                }
+            } else {
+                // Subsequent KO rounds: only remaining winners; no eliminated players
+                for (Long id : seen) {
+                    if (!active.contains(id)) {
+                        throw new ValidationException(
+                                "Eliminated player cannot be paired: " + id);
+                    }
+                }
+                if (byeCount > 0) {
+                    throw new ValidationException(
+                            "Knockout rounds after round 1 should not have byes");
+                }
+            }
+        } else {
+            if (byeCount > 1) {
+                throw new ValidationException("At most one bye per round");
+            }
+            if (seen.size() != enrolled.size()) {
+                throw new ValidationException(
+                        "Pairings must include every enrolled player exactly once");
+            }
         }
     }
 

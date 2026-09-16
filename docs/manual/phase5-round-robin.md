@@ -14,7 +14,7 @@
 4. Enrollment is locked after publish (re-open Manage Enrollment).
 5. Close pairings, reopen → published boards still visible; Generate disabled for round 1.
 6. Create RR for **5 players**, rounds **5**, enroll 5, start, publish round 1 → 2 games + 1 `BYE` row.
-7. Knockout/Swiss: Generate Pairings button may open, but generate remains disabled (Phase 6/7).
+7. Knockout: Generate Pairings opens the bracket view (Phase 6). Swiss generate remains disabled (Phase 7).
 
 ## SRS coverage
 

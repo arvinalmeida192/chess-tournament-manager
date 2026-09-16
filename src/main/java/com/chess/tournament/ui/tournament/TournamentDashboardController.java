@@ -4,6 +4,7 @@ import com.chess.tournament.bootstrap.AppContext;
 import com.chess.tournament.dao.RoundDao;
 import com.chess.tournament.domain.Round;
 import com.chess.tournament.domain.Tournament;
+import com.chess.tournament.domain.enums.TournamentType;
 import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.EnrollmentService;
 import com.chess.tournament.service.PairingService;
@@ -141,15 +142,25 @@ public class TournamentDashboardController {
     @FXML
     private void onPairings() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/pairings.fxml"));
+            Tournament tournament = tournamentService.findById(tournamentId).orElseThrow();
+            String fxml = tournament.getType() == TournamentType.KNOCKOUT
+                    ? "/fxml/knockout_bracket.fxml"
+                    : "/fxml/pairings.fxml";
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Parent root = loader.load();
-            PairingsController controller = loader.getController();
-            controller.setTournamentId(tournamentId);
+            if (tournament.getType() == TournamentType.KNOCKOUT) {
+                KnockoutBracketController controller = loader.getController();
+                controller.setTournamentId(tournamentId);
+            } else {
+                PairingsController controller = loader.getController();
+                controller.setTournamentId(tournamentId);
+            }
 
             Stage dialog = new Stage();
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.initOwner(titleLabel.getScene().getWindow());
-            dialog.setTitle("Pairings");
+            dialog.setTitle(tournament.getType() == TournamentType.KNOCKOUT
+                    ? "Knockout Bracket" : "Pairings");
             dialog.setScene(new Scene(root));
             dialog.showAndWait();
             refresh();

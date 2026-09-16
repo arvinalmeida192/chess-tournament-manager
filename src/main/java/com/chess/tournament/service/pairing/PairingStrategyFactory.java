@@ -8,14 +8,14 @@ import java.util.List;
 
 /**
  * Resolves a {@link PairingStrategy} by tournament type.
- * Phase 5 registers Round Robin only.
+ * Phase 6 registers Round Robin and Knockout.
  */
 public final class PairingStrategyFactory {
 
     private final List<PairingStrategy> strategies;
 
     public PairingStrategyFactory() {
-        this(List.of(new RoundRobinPairingStrategy()));
+        this(List.of(new RoundRobinPairingStrategy(), new KnockoutPairingStrategy()));
     }
 
     public PairingStrategyFactory(List<PairingStrategy> strategies) {
