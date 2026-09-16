@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.chess.tournament.ui.tournament.TournamentDashboardController">
+    <top>
+        <VBox spacing="8">
+            <padding>
+                <Insets top="12" right="12" bottom="8" left="12"/>
+            </padding>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Button text="← Back to list" onAction="#onBack"/>
+                <Label fx:id="titleLabel" text="Tournament">
+                    <font>
+                        <Font name="System Bold" size="22"/>
+                    </font>
+                </Label>
+            </HBox>
+            <Separator/>
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="12">
+            <padding>
+                <Insets top="8" right="16" bottom="16" left="16"/>
+            </padding>
+            <Label fx:id="configLabel" wrapText="true"/>
+            <Label fx:id="enrolledLabel"/>
+            <Label fx:id="roundLabel"/>
+            <Label fx:id="warningLabel" wrapText="true" style="-fx-text-fill: #a65c00;"/>
+            <HBox spacing="8">
+                <Button fx:id="enrollButton" text="Manage Enrollment" onAction="#onEnrollment"/>
+                <Button fx:id="startButton" text="Start Tournament" onAction="#onStart"/>
+                <Button fx:id="pairingsButton" text="Generate Pairings" onAction="#onPairings"/>
+                <Button fx:id="leaderboardButton" text="Leaderboard" onAction="#onLeaderboard"/>
+                <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
+            </HBox>
+            <Label fx:id="statusLabel" style="-fx-text-fill: #555555;"/>
+        </VBox>
+    </center>
+</BorderPane>

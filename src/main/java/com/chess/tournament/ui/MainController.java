@@ -1,8 +1,11 @@
 package com.chess.tournament.ui;
 
 import com.chess.tournament.bootstrap.AppContext;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,17 +14,25 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 /**
- * Main shell controller — Phase 1 verifies database connectivity with {@code SELECT 1}.
+ * Main shell controller — hosts navigation and loads feature screens into the content pane.
  */
 public class MainController {
 
     private static final Logger log = LoggerFactory.getLogger(MainController.class);
 
     @FXML
+    private StackPane contentPane;
+
+    @FXML
+    private VBox homePane;
+
+    @FXML
     private Label statusLabel;
 
     @FXML
     private void initialize() {
+        contentPane.setId("contentPane");
+        ContentNavigator.bind(contentPane);
         try (Connection connection = AppContext.get().getDataSource().getConnection();
              Statement statement = connection.createStatement();
              ResultSet rs = statement.executeQuery("SELECT 1")) {
@@ -40,5 +51,25 @@ public class MainController {
                     + " — check CTMS_DB_* env vars or config/application.properties");
             statusLabel.getStyleClass().add("status-error");
         }
+    }
+
+    @FXML
+    private void onHome() {
+        ContentNavigator.show(homePane);
+    }
+
+    @FXML
+    private void onPlayers() {
+        ContentNavigator.load("/fxml/player_list.fxml");
+    }
+
+    @FXML
+    private void onTournaments() {
+        ContentNavigator.load("/fxml/tournament_list.fxml");
+    }
+
+    @FXML
+    private void onExit() {
+        Platform.exit();
     }
 }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.chess.tournament.ui.tournament.EnrollmentController"
+            prefWidth="800" prefHeight="520">
+    <top>
+        <VBox spacing="6">
+            <padding>
+                <Insets top="12" right="12" bottom="8" left="12"/>
+            </padding>
+            <Label fx:id="titleLabel" text="Enrollment">
+                <font>
+                    <Font name="System Bold" size="18"/>
+                </font>
+            </Label>
+            <Label fx:id="lockLabel" wrapText="true" style="-fx-text-fill: #a65c00;"/>
+        </VBox>
+    </top>
+    <center>
+        <HBox spacing="16">
+            <padding>
+                <Insets top="4" right="12" bottom="12" left="12"/>
+            </padding>
+            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                <Label text="Available players" style="-fx-font-weight: bold;"/>
+                <ListView fx:id="availableList" VBox.vgrow="ALWAYS"/>
+                <Button fx:id="enrollButton" text="Enroll →" onAction="#onEnroll"/>
+            </VBox>
+            <VBox spacing="8" HBox.hgrow="ALWAYS">
+                <Label text="Enrolled" style="-fx-font-weight: bold;"/>
+                <TableView fx:id="enrolledTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="playerIdColumn" text="Player ID" prefWidth="80"/>
+                        <TableColumn fx:id="nameColumn" text="Name" prefWidth="160"/>
+                        <TableColumn fx:id="ratingColumn" text="Start rating" prefWidth="100"/>
+                    </columns>
+                </TableView>
+                <Button fx:id="unenrollButton" text="← Remove" onAction="#onUnenroll"/>
+            </VBox>
+        </HBox>
+    </center>
+    <bottom>
+        <HBox spacing="8" alignment="CENTER_RIGHT">
+            <padding>
+                <Insets top="0" right="12" bottom="12" left="12"/>
+            </padding>
+            <Label fx:id="statusLabel"/>
+            <Button text="Close" onAction="#onClose"/>
+        </HBox>
+    </bottom>
+</BorderPane>

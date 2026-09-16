@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.chess.tournament.ui.player.PlayerFormController"
+      spacing="12" prefWidth="420">
+    <padding>
+        <Insets top="16" right="16" bottom="16" left="16"/>
+    </padding>
+
+    <Label fx:id="titleLabel" text="Add Player" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+    <GridPane hgap="10" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints minWidth="100" prefWidth="110"/>
+            <ColumnConstraints hgrow="ALWAYS" minWidth="200"/>
+        </columnConstraints>
+
+        <Label text="Name *" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <TextField fx:id="nameField" promptText="Full name" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+        <Label text="Age" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <TextField fx:id="ageField" promptText="Optional" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="Country" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <TextField fx:id="countryField" promptText="Optional" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="Rating" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+        <TextField fx:id="ratingField" promptText="Default 1500" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+    </GridPane>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button fx:id="cancelButton" text="Cancel" onAction="#onCancel"/>
+        <Button fx:id="saveButton" text="Save" defaultButton="true" onAction="#onSave"/>
+    </HBox>
+</VBox>

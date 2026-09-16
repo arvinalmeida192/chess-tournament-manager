@@ -1,6 +1,21 @@
 package com.chess.tournament.bootstrap;
 
 import com.chess.tournament.config.DatabaseConfig;
+import com.chess.tournament.dao.GameDao;
+import com.chess.tournament.dao.JdbcUnitOfWork;
+import com.chess.tournament.dao.PlayerDao;
+import com.chess.tournament.dao.RoundDao;
+import com.chess.tournament.dao.TournamentDao;
+import com.chess.tournament.dao.TournamentPlayerDao;
+import com.chess.tournament.dao.UnitOfWork;
+import com.chess.tournament.dao.impl.JdbcGameDao;
+import com.chess.tournament.dao.impl.JdbcPlayerDao;
+import com.chess.tournament.dao.impl.JdbcRoundDao;
+import com.chess.tournament.dao.impl.JdbcTournamentDao;
+import com.chess.tournament.dao.impl.JdbcTournamentPlayerDao;
+import com.chess.tournament.service.EnrollmentService;
+import com.chess.tournament.service.PlayerService;
+import com.chess.tournament.service.TournamentService;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.flywaydb.core.Flyway;
@@ -21,10 +36,30 @@ public final class AppContext implements AutoCloseable {
 
     private final DatabaseConfig databaseConfig;
     private final HikariDataSource dataSource;
+    private final PlayerDao playerDao;
+    private final TournamentDao tournamentDao;
+    private final TournamentPlayerDao tournamentPlayerDao;
+    private final RoundDao roundDao;
+    private final GameDao gameDao;
+    private final UnitOfWork unitOfWork;
+    private final PlayerService playerService;
+    private final TournamentService tournamentService;
+    private final EnrollmentService enrollmentService;
 
     private AppContext(DatabaseConfig databaseConfig, HikariDataSource dataSource) {
         this.databaseConfig = databaseConfig;
         this.dataSource = dataSource;
+        this.playerDao = new JdbcPlayerDao(dataSource);
+        this.tournamentDao = new JdbcTournamentDao(dataSource);
+        this.tournamentPlayerDao = new JdbcTournamentPlayerDao(dataSource);
+        this.roundDao = new JdbcRoundDao(dataSource);
+        this.gameDao = new JdbcGameDao(dataSource);
+        this.unitOfWork = new JdbcUnitOfWork(dataSource);
+        this.playerService = new PlayerService(playerDao);
+        this.tournamentService = new TournamentService(
+                tournamentDao, tournamentPlayerDao, roundDao, unitOfWork);
+        this.enrollmentService = new EnrollmentService(
+                tournamentDao, tournamentPlayerDao, playerDao, roundDao, gameDao);
     }
 
     public static synchronized AppContext initialize() {
@@ -52,6 +87,42 @@ public final class AppContext implements AutoCloseable {
 
     public DatabaseConfig getDatabaseConfig() {
         return databaseConfig;
+    }
+
+    public PlayerDao getPlayerDao() {
+        return playerDao;
+    }
+
+    public TournamentDao getTournamentDao() {
+        return tournamentDao;
+    }
+
+    public TournamentPlayerDao getTournamentPlayerDao() {
+        return tournamentPlayerDao;
+    }
+
+    public RoundDao getRoundDao() {
+        return roundDao;
+    }
+
+    public GameDao getGameDao() {
+        return gameDao;
+    }
+
+    public UnitOfWork getUnitOfWork() {
+        return unitOfWork;
+    }
+
+    public PlayerService getPlayerService() {
+        return playerService;
+    }
+
+    public TournamentService getTournamentService() {
+        return tournamentService;
+    }
+
+    public EnrollmentService getEnrollmentService() {
+        return enrollmentService;
     }
 
     @Override

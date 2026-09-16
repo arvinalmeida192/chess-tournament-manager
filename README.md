@@ -64,13 +64,21 @@ cp config/application.properties.example config/application.properties
 mvn javafx:run
 ```
 
-On success, the main window shows **Connected to database**.
+On success, the main window shows **Connected to database**. Use **Players → Manage Players** and **Tournaments → Manage Tournaments**.
+
+Manual checklists:
+- [docs/manual/phase3-players.md](docs/manual/phase3-players.md)
+- [docs/manual/phase4-tournaments.md](docs/manual/phase4-tournaments.md)
 
 ## Tests
+
+Integration tests use [Testcontainers](https://testcontainers.com/) to spin up a disposable PostgreSQL 16 instance. Docker must be running locally.
 
 ```bash
 mvn test
 ```
+
+If Docker 29+ reports an API version mismatch, the project ships `src/test/resources/docker-java.properties` with `api.version=1.44` as a workaround. Testcontainers 1.21.4+ is required for recent Docker Engine versions.
 
 ## Documentation
 
