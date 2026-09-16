@@ -12,6 +12,8 @@
 |------|--------|
 | Project | Chess Tournament Management System (CTMS) |
 | Root | `/home/arvinalmeida/Chess_Java` |
+| GitHub | https://github.com/arvinalmeida192/chess-tournament-manager |
+| Remote | `origin` → `main` |
 | Stack | Java 17 (release), JavaFX 21, Maven, JDBC, HikariCP, Flyway, PostgreSQL |
 | Base package | `com.chess.tournament` |
 | Architecture | UI → Service → DAO → PostgreSQL (no Spring) |
@@ -186,3 +188,4 @@ Full workflow polish, CSS, demo seed, `docs/manual/E2E_CHECKLIST.md`, SRS §13.1
 | Date | Change |
 |------|--------|
 | 2026-09-16 | Phase 1 completed. Created Maven/JavaFX/Flyway foundation, context.md handoff. Next: Phase 2. |
+| 2026-09-16 | Pushed to GitHub: https://github.com/arvinalmeida192/chess-tournament-manager (public, branch `main`). |
