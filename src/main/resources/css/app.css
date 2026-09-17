@@ -1,7 +1,7 @@
 .root {
     -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     -fx-font-size: 13px;
-    -fx-background-color: #f7f8fa;
+    -fx-background-color: #f4f6f9;
 }
 
 .label {
@@ -19,26 +19,56 @@
 }
 
 .button {
-    -fx-background-radius: 4;
-    -fx-padding: 6 14 6 14;
+    -fx-background-radius: 5;
+    -fx-padding: 7 16 7 16;
     -fx-cursor: hand;
+    -fx-background-color: #e4e8ef;
+    -fx-text-fill: #243b53;
+    -fx-border-color: transparent;
+}
+
+.button:hover {
+    -fx-background-color: #d5dce8;
 }
 
 .button:disabled {
-    -fx-opacity: 0.55;
+    -fx-opacity: 0.5;
+}
+
+.primary-button {
+    -fx-background-color: #2b6cb0;
+    -fx-text-fill: white;
+}
+
+.primary-button:hover {
+    -fx-background-color: #2c5282;
+}
+
+.secondary-button {
+    -fx-background-color: #eef1f5;
+    -fx-text-fill: #334e68;
+}
+
+.danger-button {
+    -fx-background-color: #f8e1e1;
+    -fx-text-fill: #9b1c1c;
+}
+
+.danger-button:hover {
+    -fx-background-color: #f0c8c8;
 }
 
 .tool-bar {
     -fx-background-color: #eef1f5;
-    -fx-padding: 6 10 6 10;
+    -fx-padding: 8 12 8 12;
     -fx-spacing: 8;
 }
 
 .table-view {
     -fx-background-color: white;
     -fx-border-color: #d9dee7;
-    -fx-border-radius: 4;
-    -fx-background-radius: 4;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
 }
 
 .table-view .column-header-background {
@@ -84,4 +114,56 @@
 .section-title {
     -fx-font-size: 20px;
     -fx-font-weight: bold;
+    -fx-text-fill: #102a43;
+}
+
+.group-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #486581;
+}
+
+.muted-label {
+    -fx-text-fill: #627d98;
+}
+
+.emphasis-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #243b53;
+}
+
+.next-step-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #2b6cb0;
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 0 0;
+}
+
+.warning-label {
+    -fx-text-fill: #a65c00;
+}
+
+.hint-label {
+    -fx-text-fill: #627d98;
+    -fx-font-size: 12px;
+}
+
+.info-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #d9dee7;
+    -fx-border-radius: 8;
+    -fx-padding: 14 16 14 16;
+}
+
+.page-header {
+    -fx-background-color: #f4f6f9;
+}
+
+.dashboard-body {
+    -fx-spacing: 16;
+}
+
+.home-actions {
+    -fx-padding: 8 0 0 0;
 }

@@ -111,6 +111,10 @@ class ResultServiceIntegrationTest extends AbstractPostgresIntegrationTest {
 
         Round round1 = roundDao.findByTournamentAndNumber(tournament.getId(), 1).orElseThrow();
         assertEquals(RoundStatus.COMPLETED, round1.getStatus());
+
+        Round round2 = roundDao.findByTournamentAndNumber(tournament.getId(), 2).orElseThrow();
+        assertEquals(RoundStatus.PENDING_PAIRINGS, round2.getStatus());
+        assertEquals(2, pairingService.findPairableRoundNumber(tournament.getId()).orElseThrow());
     }
 
     @Test

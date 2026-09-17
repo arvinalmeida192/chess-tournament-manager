@@ -104,9 +104,12 @@ public final class ResultService {
     }
 
     /**
-     * Completes a round: applies points/W-D-L, Elo (non-bye), marks KO losers, sets COMPLETED.
+     * Completes a round: applies points/W-D-L, Elo (non-bye), marks KO losers, sets COMPLETED,
+     * and creates the next planned round as {@link RoundStatus#PENDING_PAIRINGS} when applicable.
+     *
+     * @return next round number ready for pairings, if one was prepared
      */
-    public void completeRound(long tournamentId, int roundNumber) {
+    public Optional<Integer> completeRound(long tournamentId, int roundNumber) {
         Tournament tournament = requireTournament(tournamentId);
         if (tournament.getStatus() != TournamentStatus.ACTIVE) {
             throw new ValidationException("Results require an ACTIVE tournament");
@@ -145,7 +148,7 @@ public final class ResultService {
         }
 
         Instant completedAt = Instant.now();
-        unitOfWork.executeInTransaction(connection -> {
+        Optional<Integer> nextRound = unitOfWork.executeInTransaction(connection -> {
             for (Game game : games) {
                 processCompletedGame(connection, game, byTpId, ratingSnapshot);
             }
@@ -157,9 +160,33 @@ public final class ResultService {
             if (tournament.getType() == TournamentType.KNOCKOUT) {
                 knockoutAdvancementService.markLosers(connection, games);
             }
-            return null;
+            return createNextRoundIfNeeded(connection, tournament, roundNumber);
         });
         log.info("Completed tournament {} round {}", tournamentId, roundNumber);
+        return nextRound;
+    }
+
+    private Optional<Integer> createNextRoundIfNeeded(Connection connection,
+                                                      Tournament tournament,
+                                                      int completedRoundNumber) {
+        int nextNumber = completedRoundNumber + 1;
+        if (nextNumber > tournament.getRoundsPlanned()) {
+            return Optional.empty();
+        }
+        Optional<Round> existing = roundDao.findByTournamentAndNumber(
+                connection, tournament.getId(), nextNumber);
+        if (existing.isPresent()) {
+            return existing.get().getStatus() == RoundStatus.PENDING_PAIRINGS
+                    ? Optional.of(nextNumber)
+                    : Optional.empty();
+        }
+        Round created = new Round();
+        created.setTournamentId(tournament.getId());
+        created.setRoundNumber(nextNumber);
+        created.setStatus(RoundStatus.PENDING_PAIRINGS);
+        roundDao.insert(connection, created);
+        log.info("Prepared tournament {} round {} for pairings", tournament.getId(), nextNumber);
+        return Optional.of(nextNumber);
     }
 
     public Optional<Integer> findResultsRoundNumber(long tournamentId) {

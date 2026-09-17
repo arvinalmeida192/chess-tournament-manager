@@ -124,8 +124,7 @@ Chess_Java/
 │   └── application.properties.example
 ├── docs/
 │   ├── SRS.md
-│   ├── SDD.md
-│   └── DEVELOPMENT_PLAN.md
+│   └── SDD.md
 └── src/
     ├── main/
     │   ├── java/com/chess/tournament/

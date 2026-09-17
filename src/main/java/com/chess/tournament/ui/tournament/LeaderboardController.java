@@ -3,12 +3,13 @@ package com.chess.tournament.ui.tournament;
 import com.chess.tournament.bootstrap.AppContext;
 import com.chess.tournament.domain.Tournament;
 import com.chess.tournament.domain.enums.TournamentStatus;
-import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.LeaderboardService;
 import com.chess.tournament.service.QualificationService;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.service.leaderboard.StandingRow;
 import com.chess.tournament.ui.util.Alerts;
+import com.chess.tournament.ui.util.DisplayLabels;
+import com.chess.tournament.ui.util.TaskExceptions;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -91,9 +92,7 @@ public class LeaderboardController {
         startRatingColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getStartRating()));
         finalRatingColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getFinalRating()));
         qualificationColumn.setCellValueFactory(c -> new SimpleStringProperty(
-                c.getValue().getQualificationStatus() == null
-                        ? ""
-                        : c.getValue().getQualificationStatus().name()));
+                DisplayLabels.qualification(c.getValue().getQualificationStatus())));
 
         roundCombo.valueProperty().addListener((obs, oldV, newV) -> {
             if (!suppressRoundChange && newV != null) {
@@ -120,7 +119,7 @@ public class LeaderboardController {
     private void onApplyQualification() {
         if (!Alerts.confirm("Apply qualification",
                 "Mark top " + tournament.getQualifiersCount()
-                        + " players as QUALIFIED (others ELIMINATED)?")) {
+                        + " players as Qualified? This is only available after every round is completed.")) {
             return;
         }
         setBusy(true);
@@ -147,8 +146,7 @@ public class LeaderboardController {
             setBusy(false);
             Throwable err = task.getException();
             log.error("Qualification failed", err);
-            Alerts.error("Qualification failed",
-                    err instanceof DomainException ? err.getMessage() : err.getMessage());
+            Alerts.error("Qualification failed", TaskExceptions.message(err));
         });
         new Thread(task, "apply-qualification").start();
     }
@@ -184,8 +182,7 @@ public class LeaderboardController {
             setBusy(false);
             Throwable err = task.getException();
             log.error("Finalize failed", err);
-            Alerts.error("Finalize failed",
-                    err instanceof DomainException ? err.getMessage() : err.getMessage());
+            Alerts.error("Finalize failed", TaskExceptions.message(err));
         });
         new Thread(task, "finalize-tournament").start();
     }
@@ -257,11 +254,13 @@ public class LeaderboardController {
     }
 
     private void updateActionButtons() {
-        boolean hasCompleted = roundCombo.getItems() != null && !roundCombo.getItems().isEmpty();
+        boolean allComplete = tournamentService.areAllRoundsComplete(tournamentId);
         boolean activeOrDone = tournament.getStatus() == TournamentStatus.ACTIVE
                 || tournament.getStatus() == TournamentStatus.COMPLETED;
-        qualifyButton.setDisable(!(activeOrDone && hasCompleted));
-        finalizeButton.setDisable(!tournamentService.areAllRoundsComplete(tournamentId)
+        // Qualification is final-step only — applying earlier breaks knockout advancement
+        qualifyButton.setDisable(!(activeOrDone && allComplete
+                && tournament.getStatus() == TournamentStatus.ACTIVE));
+        finalizeButton.setDisable(!allComplete
                 || tournament.getStatus() != TournamentStatus.ACTIVE);
     }
 

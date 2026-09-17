@@ -7,21 +7,20 @@ import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.ui.ContentNavigator;
 import com.chess.tournament.ui.util.Alerts;
-import com.chess.tournament.ui.util.UiStyles;
+import com.chess.tournament.ui.util.DialogStages;
+import com.chess.tournament.ui.util.DisplayLabels;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +39,9 @@ public class TournamentListController {
     @FXML
     private TableColumn<Tournament, String> nameColumn;
     @FXML
-    private TableColumn<Tournament, Object> typeColumn;
+    private TableColumn<Tournament, String> typeColumn;
     @FXML
-    private TableColumn<Tournament, Object> statusColumn;
+    private TableColumn<Tournament, String> statusColumn;
     @FXML
     private TableColumn<Tournament, Integer> roundsColumn;
     @FXML
@@ -67,17 +66,19 @@ public class TournamentListController {
         tournamentService = AppContext.get().getTournamentService();
         idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-        typeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
-        statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+        typeColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                DisplayLabels.tournamentType(c.getValue().getType())));
+        statusColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                DisplayLabels.tournamentStatus(c.getValue().getStatus())));
         roundsColumn.setCellValueFactory(new PropertyValueFactory<>("roundsPlanned"));
         qualifiersColumn.setCellValueFactory(new PropertyValueFactory<>("qualifiersCount"));
 
         statusFilter.setItems(FXCollections.observableArrayList(
                 ALL_STATUSES,
-                TournamentStatus.DRAFT.name(),
-                TournamentStatus.ACTIVE.name(),
-                TournamentStatus.COMPLETED.name(),
-                TournamentStatus.CANCELLED.name()));
+                DisplayLabels.tournamentStatus(TournamentStatus.DRAFT),
+                DisplayLabels.tournamentStatus(TournamentStatus.ACTIVE),
+                DisplayLabels.tournamentStatus(TournamentStatus.COMPLETED),
+                DisplayLabels.tournamentStatus(TournamentStatus.CANCELLED)));
         statusFilter.getSelectionModel().select(ALL_STATUSES);
         statusFilter.setOnAction(e -> refreshList());
 
@@ -104,15 +105,8 @@ public class TournamentListController {
             Parent root = loader.load();
             TournamentCreateController controller = loader.getController();
 
-            Stage dialog = new Stage();
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            dialog.initOwner(tournamentTable.getScene().getWindow());
-            dialog.setTitle("Create Tournament");
-            Scene scene = new Scene(root);
-            UiStyles.apply(scene);
-            dialog.setScene(scene);
-            dialog.setResizable(false);
-            dialog.showAndWait();
+            DialogStages.showModal(root, "Create Tournament",
+                    tournamentTable.getScene().getWindow(), false);
 
             if (controller.isCreated()) {
                 refreshList();
@@ -142,7 +136,7 @@ public class TournamentListController {
         }
         if (!Alerts.confirm("Cancel tournament",
                 "Cancel \"" + selected.getName()
-                        + "\"? Status becomes CANCELLED. History is kept.")) {
+                        + "\"? Status becomes Cancelled. History is kept.")) {
             return;
         }
         setBusy(true);
@@ -196,7 +190,14 @@ public class TournamentListController {
                 if (filter == null || ALL_STATUSES.equals(filter)) {
                     return tournamentService.listAll();
                 }
-                return tournamentService.listByStatus(TournamentStatus.valueOf(filter));
+                TournamentStatus status = switch (filter) {
+                    case "Draft" -> TournamentStatus.DRAFT;
+                    case "Active" -> TournamentStatus.ACTIVE;
+                    case "Completed" -> TournamentStatus.COMPLETED;
+                    case "Cancelled" -> TournamentStatus.CANCELLED;
+                    default -> TournamentStatus.valueOf(filter);
+                };
+                return tournamentService.listByStatus(status);
             }
         };
         task.setOnSucceeded(e -> {

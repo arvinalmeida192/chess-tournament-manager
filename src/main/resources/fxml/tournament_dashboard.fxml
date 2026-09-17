@@ -5,44 +5,74 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.chess.tournament.ui.tournament.TournamentDashboardController">
+            fx:controller="com.chess.tournament.ui.tournament.TournamentDashboardController"
+            styleClass="dashboard-root">
     <top>
-        <VBox spacing="8">
+        <VBox spacing="8" styleClass="page-header">
             <padding>
-                <Insets top="12" right="12" bottom="8" left="12"/>
+                <Insets top="16" right="20" bottom="8" left="20"/>
             </padding>
             <HBox spacing="12" alignment="CENTER_LEFT">
-                <Button text="← Back to list" onAction="#onBack"/>
+                <Button text="← Back" onAction="#onBack" styleClass="secondary-button"/>
                 <Label fx:id="titleLabel" text="Tournament" styleClass="section-title"/>
+                <HBox HBox.hgrow="ALWAYS"/>
+                <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh" styleClass="secondary-button"/>
             </HBox>
             <Separator/>
         </VBox>
     </top>
     <center>
-        <VBox spacing="12">
+        <VBox spacing="16" styleClass="dashboard-body">
             <padding>
-                <Insets top="8" right="16" bottom="16" left="16"/>
+                <Insets top="8" right="20" bottom="20" left="20"/>
             </padding>
-            <Label fx:id="configLabel" wrapText="true"/>
-            <Label fx:id="enrolledLabel"/>
-            <Label fx:id="roundLabel"/>
-            <Label fx:id="warningLabel" wrapText="true" style="-fx-text-fill: #a65c00;"/>
-            <HBox spacing="8" alignment="CENTER_LEFT">
-                <Button fx:id="enrollButton" text="Manage Enrollment" onAction="#onEnrollment"/>
-                <Button fx:id="startButton" text="Start Tournament" onAction="#onStart"/>
-                <Button fx:id="pairingsButton" text="Pairings" onAction="#onPairings"/>
-                <Button fx:id="resultsButton" text="Enter Results" onAction="#onResults"/>
-                <Button fx:id="leaderboardButton" text="Leaderboard" onAction="#onLeaderboard"/>
-                <Button fx:id="finalizeButton" text="Finalize" onAction="#onFinalize"/>
-                <Button fx:id="cancelButton" text="Cancel Tournament" onAction="#onCancelTournament"/>
-                <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
-            </HBox>
-            <Label fx:id="statusLabel" style="-fx-text-fill: #555555;"/>
+
+            <VBox spacing="6" styleClass="info-card">
+                <Label fx:id="configLabel" wrapText="true" styleClass="muted-label"/>
+                <HBox spacing="24">
+                    <Label fx:id="enrolledLabel"/>
+                    <Label fx:id="roundLabel" styleClass="emphasis-label"/>
+                </HBox>
+                <Label fx:id="nextStepLabel" wrapText="true" styleClass="next-step-label"/>
+                <Label fx:id="warningLabel" wrapText="true" styleClass="warning-label"/>
+            </VBox>
+
+            <VBox spacing="8">
+                <Label text="Setup" styleClass="group-title"/>
+                <FlowPane hgap="8" vgap="8">
+                    <Button fx:id="enrollButton" text="Manage Enrollment" onAction="#onEnrollment"/>
+                    <Button fx:id="startButton" text="Start Tournament" onAction="#onStart" styleClass="primary-button"/>
+                </FlowPane>
+            </VBox>
+
+            <VBox spacing="8">
+                <Label text="Run tournament" styleClass="group-title"/>
+                <FlowPane hgap="8" vgap="8">
+                    <Button fx:id="pairingsButton" text="Pairings" onAction="#onPairings"/>
+                    <Button fx:id="nextRoundButton" text="Proceed to Next Round" onAction="#onNextRound"
+                            styleClass="primary-button"/>
+                    <Button fx:id="resultsButton" text="Enter Results" onAction="#onResults"/>
+                    <Button fx:id="leaderboardButton" text="Leaderboard" onAction="#onLeaderboard"/>
+                </FlowPane>
+            </VBox>
+
+            <VBox spacing="8">
+                <Label text="Finish" styleClass="group-title"/>
+                <FlowPane hgap="8" vgap="8">
+                    <Button fx:id="finalizeButton" text="Finalize Tournament" onAction="#onFinalize"
+                            styleClass="primary-button"/>
+                    <Button fx:id="cancelButton" text="Cancel Tournament" onAction="#onCancelTournament"
+                            styleClass="danger-button"/>
+                </FlowPane>
+            </VBox>
+
+            <Label fx:id="statusLabel" styleClass="muted-label"/>
         </VBox>
     </center>
 </BorderPane>

@@ -8,36 +8,32 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.chess.tournament.ui.tournament.PairingsController"
-            prefWidth="720" prefHeight="480">
+            prefWidth="740" prefHeight="500"
+            styleClass="dialog-root">
     <top>
-        <VBox spacing="6">
+        <VBox spacing="6" styleClass="page-header">
             <padding>
-                <Insets top="12" right="12" bottom="8" left="12"/>
+                <Insets top="16" right="16" bottom="8" left="16"/>
             </padding>
-            <Label fx:id="titleLabel" text="Pairings">
-                <font>
-                    <Font name="System Bold" size="18"/>
-                </font>
-            </Label>
-            <Label fx:id="roundLabel"/>
+            <Label fx:id="titleLabel" text="Pairings" styleClass="section-title"/>
+            <Label fx:id="roundLabel" styleClass="muted-label"/>
         </VBox>
     </top>
     <center>
         <VBox spacing="8">
             <padding>
-                <Insets top="4" right="12" bottom="8" left="12"/>
+                <Insets top="4" right="16" bottom="8" left="16"/>
             </padding>
             <TableView fx:id="pairingsTable" VBox.vgrow="ALWAYS">
                 <columns>
                     <TableColumn fx:id="boardColumn" text="Board" prefWidth="70"/>
-                    <TableColumn fx:id="whiteColumn" text="White" prefWidth="220"/>
-                    <TableColumn fx:id="blackColumn" text="Black" prefWidth="220"/>
-                    <TableColumn fx:id="resultColumn" text="Result" prefWidth="110"/>
+                    <TableColumn fx:id="whiteColumn" text="White" prefWidth="230"/>
+                    <TableColumn fx:id="blackColumn" text="Black" prefWidth="230"/>
+                    <TableColumn fx:id="resultColumn" text="Result" prefWidth="120"/>
                 </columns>
             </TableView>
         </VBox>
@@ -45,12 +41,13 @@
     <bottom>
         <HBox spacing="8" alignment="CENTER_RIGHT">
             <padding>
-                <Insets top="0" right="12" bottom="12" left="12"/>
+                <Insets top="0" right="16" bottom="16" left="16"/>
             </padding>
-            <Label fx:id="statusLabel" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-            <Button fx:id="generateButton" text="Generate &amp; Publish" onAction="#onGenerate"/>
-            <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
-            <Button text="Close" onAction="#onClose"/>
+            <Label fx:id="statusLabel" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="muted-label"/>
+            <Button fx:id="generateButton" text="Generate &amp; Publish" onAction="#onGenerate"
+                    styleClass="primary-button"/>
+            <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh" styleClass="secondary-button"/>
+            <Button text="Close" onAction="#onClose" styleClass="secondary-button"/>
         </HBox>
     </bottom>
 </BorderPane>

@@ -42,6 +42,18 @@ class TournamentViewModelTest {
     }
 
     @Test
+    void afterCompletedRound_canProceedToNextRound() {
+        Tournament t = swiss(TournamentStatus.ACTIVE, 3);
+        Round r1 = round(1, RoundStatus.COMPLETED);
+        Round r2 = round(2, RoundStatus.PENDING_PAIRINGS);
+        TournamentViewModel vm = new TournamentViewModel(
+                t, 8, Optional.of(r1), Optional.of(r2), Optional.empty(), true, false, true, 1);
+        assertTrue(vm.canProceedToNextRound());
+        assertTrue(vm.canGeneratePairings());
+        assertTrue(vm.getNextStepHint().contains("round 2"));
+    }
+
+    @Test
     void activeAllRoundsComplete_canFinalize() {
         Tournament t = swiss(TournamentStatus.ACTIVE, 3);
         Round r1 = round(1, RoundStatus.COMPLETED);

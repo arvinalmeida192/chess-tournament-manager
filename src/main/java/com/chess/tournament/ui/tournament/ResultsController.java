@@ -10,9 +10,12 @@ import com.chess.tournament.domain.TournamentPlayer;
 import com.chess.tournament.domain.enums.GameResult;
 import com.chess.tournament.domain.enums.TournamentType;
 import com.chess.tournament.exception.DomainException;
+import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.ResultService;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.ui.util.Alerts;
+import com.chess.tournament.ui.util.DisplayLabels;
+import com.chess.tournament.ui.util.TaskExceptions;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -25,6 +28,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +42,18 @@ import java.util.Optional;
 public class ResultsController {
 
     private static final Logger log = LoggerFactory.getLogger(ResultsController.class);
+
+    private static final StringConverter<GameResult> RESULT_CONVERTER = new StringConverter<>() {
+        @Override
+        public String toString(GameResult result) {
+            return DisplayLabels.gameResult(result);
+        }
+
+        @Override
+        public GameResult fromString(String string) {
+            return null;
+        }
+    };
 
     @FXML
     private Label titleLabel;
@@ -60,19 +76,25 @@ public class ResultsController {
     @FXML
     private Button completeButton;
     @FXML
+    private Button nextRoundButton;
+    @FXML
     private Button refreshButton;
 
     private ResultService resultService;
+    private PairingService pairingService;
     private TournamentService tournamentService;
     private TournamentPlayerDao tournamentPlayerDao;
     private PlayerDao playerDao;
     private long tournamentId;
     private int roundNumber;
     private TournamentType tournamentType = TournamentType.SWISS;
+    private boolean proceedToPairings;
+    private Integer preparedNextRound;
 
     @FXML
     private void initialize() {
         resultService = AppContext.get().getResultService();
+        pairingService = AppContext.get().getPairingService();
         tournamentService = AppContext.get().getTournamentService();
         tournamentPlayerDao = AppContext.get().getTournamentPlayerDao();
         playerDao = AppContext.get().getPlayerDao();
@@ -96,6 +118,7 @@ public class ResultsController {
                     super.startEdit();
                 }
             };
+            cell.setConverter(RESULT_CONVERTER);
             cell.setComboBoxEditable(false);
             return cell;
         });
@@ -112,6 +135,8 @@ public class ResultsController {
 
     public void setTournamentId(long tournamentId) {
         this.tournamentId = tournamentId;
+        this.proceedToPairings = false;
+        this.preparedNextRound = null;
         Tournament tournament = tournamentService.findById(tournamentId).orElseThrow();
         this.tournamentType = tournament.getType();
         titleLabel.setText("Results — " + tournament.getName());
@@ -119,6 +144,11 @@ public class ResultsController {
         Optional<Integer> resultsRound = resultService.findResultsRoundNumber(tournamentId);
         this.roundNumber = resultsRound.orElse(1);
         refresh();
+    }
+
+    /** After closing, dashboard may open pairings when the host chose next round. */
+    public boolean shouldProceedToPairings() {
+        return proceedToPairings;
     }
 
     @FXML
@@ -152,8 +182,7 @@ public class ResultsController {
             setBusy(false);
             Throwable error = task.getException();
             log.error("Failed to save results", error);
-            String message = error instanceof DomainException ? error.getMessage() : error.getMessage();
-            Alerts.error("Save failed", message);
+            Alerts.error("Save failed", TaskExceptions.message(error));
         });
         new Thread(task, "save-results").start();
     }
@@ -162,19 +191,33 @@ public class ResultsController {
     private void onCompleteRound() {
         if (!Alerts.confirm("Complete round",
                 "Complete round " + roundNumber
-                        + "? This applies points and Elo ratings and cannot be undone from the UI.")) {
+                        + "? This applies points and ratings and cannot be undone from the UI.")) {
             return;
         }
-        // Persist any unsaved combo selections first
         onSaveAllThenComplete();
+    }
+
+    @FXML
+    private void onNextRound() {
+        if (preparedNextRound == null) {
+            Optional<Integer> prepared = pairingService.prepareNextRound(tournamentId);
+            preparedNextRound = prepared.orElse(null);
+        }
+        if (preparedNextRound == null) {
+            Alerts.info("Next round", "No further round is available to pair.");
+            return;
+        }
+        proceedToPairings = true;
+        onClose();
     }
 
     private void onSaveAllThenComplete() {
         List<ResultRow> rows = new ArrayList<>(resultsTable.getItems());
+        int completedRound = roundNumber;
         setBusy(true);
-        Task<Void> task = new Task<>() {
+        Task<Optional<Integer>> task = new Task<>() {
             @Override
-            protected Void call() {
+            protected Optional<Integer> call() {
                 for (ResultRow row : rows) {
                     GameResult selected = row.resultProperty().get();
                     if (selected == null || selected == GameResult.PENDING) {
@@ -185,22 +228,32 @@ public class ResultsController {
                         resultService.saveGameResult(row.gameId(), selected);
                     }
                 }
-                resultService.completeRound(tournamentId, roundNumber);
-                return null;
+                return resultService.completeRound(tournamentId, completedRound);
             }
         };
         task.setOnSucceeded(e -> {
             setBusy(false);
-            statusLabel.setText("Round " + roundNumber + " completed");
-            Alerts.info("Round completed", "Points and ratings have been updated.");
+            Optional<Integer> next = task.getValue();
+            preparedNextRound = next.orElse(null);
+            statusLabel.setText("Round " + completedRound + " completed");
+            if (next.isPresent()) {
+                nextRoundButton.setDisable(false);
+                nextRoundButton.setText("Proceed to Round " + next.get());
+                Alerts.info("Round completed",
+                        "Round " + completedRound + " is done. Round " + next.get()
+                                + " is ready — use Proceed to Next Round to generate pairings.");
+            } else {
+                nextRoundButton.setDisable(true);
+                Alerts.info("Round completed",
+                        "All planned rounds are complete. You can finalize from the dashboard.");
+            }
             refresh();
         });
         task.setOnFailed(e -> {
             setBusy(false);
             Throwable error = task.getException();
             log.error("Failed to complete round", error);
-            String message = error instanceof DomainException ? error.getMessage() : error.getMessage();
-            Alerts.error("Complete failed", message);
+            Alerts.error("Complete failed", TaskExceptions.message(error));
             refresh();
         });
         new Thread(task, "complete-round").start();
@@ -231,7 +284,7 @@ public class ResultsController {
                 for (Game g : games) {
                     boolean bye = g.getBlackTournamentPlayerId() == null;
                     String white = nameOf(g.getWhiteTournamentPlayerId(), names);
-                    String black = bye ? "— BYE —" : nameOf(g.getBlackTournamentPlayerId(), names);
+                    String black = bye ? "— Bye —" : nameOf(g.getBlackTournamentPlayerId(), names);
                     GameResult result = g.getResult() == null ? GameResult.PENDING : g.getResult();
                     rows.add(new ResultRow(g.getId(), g.getBoardNumber(), white, black, result, bye));
                 }
@@ -239,7 +292,9 @@ public class ResultsController {
                 boolean allSet = rows.stream()
                         .allMatch(r -> r.resultProperty().get() != null
                                 && r.resultProperty().get() != GameResult.PENDING);
-                return new RefreshData(displayRound, rows, editable, allSet && editable, tournament.getType());
+                Optional<Integer> pairable = pairingService.findPairableRoundNumber(tournamentId);
+                return new RefreshData(displayRound, rows, editable, allSet && editable,
+                        tournament.getType(), pairable.orElse(null));
             }
         };
         task.setOnSucceeded(e -> {
@@ -247,17 +302,33 @@ public class ResultsController {
             RefreshData data = task.getValue();
             roundNumber = data.displayRound();
             tournamentType = data.type();
-            roundLabel.setText("Round " + data.displayRound() + "  |  Type: " + data.type());
+            roundLabel.setText("Round " + data.displayRound()
+                    + "  ·  " + DisplayLabels.tournamentType(data.type()));
             resultsTable.setItems(FXCollections.observableArrayList(data.rows()));
             saveButton.setDisable(!data.editable());
             completeButton.setDisable(!data.canComplete());
             resultsTable.setEditable(data.editable());
+
+            if (preparedNextRound != null) {
+                nextRoundButton.setDisable(false);
+                nextRoundButton.setText("Proceed to Round " + preparedNextRound);
+            } else if (data.nextPairableRound() != null && data.nextPairableRound() > data.displayRound()) {
+                preparedNextRound = data.nextPairableRound();
+                nextRoundButton.setDisable(false);
+                nextRoundButton.setText("Proceed to Round " + preparedNextRound);
+            } else {
+                nextRoundButton.setDisable(true);
+            }
+
             if (data.rows().isEmpty()) {
                 statusLabel.setText("No games for this round");
             } else if (!data.editable()) {
-                statusLabel.setText("No round is open for results");
+                statusLabel.setText(preparedNextRound != null
+                        ? "Round completed — proceed to the next round when ready"
+                        : "No round is open for results");
             } else {
-                statusLabel.setText(data.rows().size() + " board(s) — edit Result column, then Save or Complete");
+                statusLabel.setText(data.rows().size()
+                        + " board(s) — edit Result, then Save or Complete Round");
             }
         });
         task.setOnFailed(e -> {
@@ -290,8 +361,8 @@ public class ResultsController {
         for (TournamentPlayer tp : tps) {
             String name = playerDao.findById(tp.getPlayerId())
                     .map(Player::getName)
-                    .orElse("Player#" + tp.getPlayerId());
-            names.put(tp.getId(), name + " (TP " + tp.getId() + ")");
+                    .orElse("Unknown player");
+            names.put(tp.getId(), name);
         }
         return names;
     }
@@ -300,7 +371,7 @@ public class ResultsController {
         if (tpId == null) {
             return "—";
         }
-        return names.getOrDefault(tpId, "TP " + tpId);
+        return names.getOrDefault(tpId, "Unknown player");
     }
 
     private void setBusy(boolean busy) {
@@ -308,6 +379,7 @@ public class ResultsController {
         if (busy) {
             saveButton.setDisable(true);
             completeButton.setDisable(true);
+            nextRoundButton.setDisable(true);
         }
     }
 
@@ -361,6 +433,7 @@ public class ResultsController {
     }
 
     private record RefreshData(int displayRound, List<ResultRow> rows,
-                               boolean editable, boolean canComplete, TournamentType type) {
+                               boolean editable, boolean canComplete, TournamentType type,
+                               Integer nextPairableRound) {
     }
 }

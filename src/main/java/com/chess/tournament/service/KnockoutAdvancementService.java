@@ -16,7 +16,7 @@ import java.util.Objects;
 
 /**
  * Marks knockout losers as {@link QualificationStatus#ELIMINATED}.
- * Invoked from {@code ResultService.completeRound} in Phase 8; callable standalone for tests.
+ * Invoked from {@code ResultService.completeRound}; callable standalone for tests.
  */
 public final class KnockoutAdvancementService {
 

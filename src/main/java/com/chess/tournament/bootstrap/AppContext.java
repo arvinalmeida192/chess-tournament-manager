@@ -72,7 +72,7 @@ public final class AppContext implements AutoCloseable {
         this.leaderboardService = new LeaderboardService(
                 tournamentDao, tournamentPlayerDao, roundDao, gameDao, playerDao);
         this.qualificationService = new QualificationService(
-                tournamentDao, tournamentPlayerDao, leaderboardService, unitOfWork);
+                tournamentDao, tournamentPlayerDao, leaderboardService, unitOfWork, roundDao);
         this.tournamentService = new TournamentService(
                 tournamentDao, tournamentPlayerDao, roundDao, unitOfWork, qualificationService);
         this.enrollmentService = new EnrollmentService(

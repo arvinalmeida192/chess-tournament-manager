@@ -9,13 +9,14 @@
 <?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.ToolBar?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.chess.tournament.ui.MainController"
-            prefWidth="1024" prefHeight="768">
+            prefWidth="1080" prefHeight="720">
     <top>
         <VBox>
             <MenuBar>
@@ -35,25 +36,29 @@
                 </Menu>
             </MenuBar>
             <ToolBar>
-                <Button text="Home" onAction="#onHome"/>
+                <Button text="Home" onAction="#onHome" styleClass="secondary-button"/>
                 <Button text="Players" onAction="#onPlayers"/>
-                <Button text="Tournaments" onAction="#onTournaments"/>
-                <Button text="Test DB" onAction="#onTestConnection"/>
+                <Button text="Tournaments" onAction="#onTournaments" styleClass="primary-button"/>
             </ToolBar>
         </VBox>
     </top>
     <center>
         <StackPane fx:id="contentPane">
-            <VBox fx:id="homePane" alignment="CENTER" spacing="14">
+            <VBox fx:id="homePane" alignment="CENTER" spacing="16">
                 <padding>
-                    <Insets top="40" right="48" bottom="40" left="48"/>
+                    <Insets top="48" right="48" bottom="48" left="48"/>
                 </padding>
                 <Label text="Chess Tournament Manager" styleClass="home-title"/>
-                <Label text="Host workflow: Players → Create tournament → Enroll → Start → Pairings → Results → Leaderboard → Finalize"
+                <Label text="Create tournaments, enroll players, generate pairings, record results, and finalize standings."
                        wrapText="true"
                        styleClass="home-subtitle"/>
+                <HBox spacing="12" alignment="CENTER" styleClass="home-actions">
+                    <Button text="Manage Players" onAction="#onPlayers"/>
+                    <Button text="Manage Tournaments" onAction="#onTournaments" styleClass="primary-button"/>
+                </HBox>
                 <Label fx:id="statusLabel" text="Checking database connection..."
-                       wrapText="true"/>
+                       wrapText="true"
+                       styleClass="muted-label"/>
             </VBox>
         </StackPane>
     </center>

@@ -11,10 +11,11 @@ import com.chess.tournament.domain.Tournament;
 import com.chess.tournament.domain.TournamentPlayer;
 import com.chess.tournament.domain.enums.GameResult;
 import com.chess.tournament.domain.enums.TournamentType;
-import com.chess.tournament.exception.DomainException;
 import com.chess.tournament.service.PairingService;
 import com.chess.tournament.service.TournamentService;
 import com.chess.tournament.ui.util.Alerts;
+import com.chess.tournament.ui.util.DisplayLabels;
+import com.chess.tournament.ui.util.TaskExceptions;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.concurrent.Task;
@@ -36,7 +37,6 @@ import java.util.Optional;
 
 /**
  * Knockout bracket view: games grouped by round (FR-KO-003).
- * Winner column shows a placeholder until results are entered (Phase 8).
  */
 public class KnockoutBracketController {
 
@@ -99,7 +99,11 @@ public class KnockoutBracketController {
     private void onGenerate() {
         Optional<Integer> pairable = pairingService.findPairableRoundNumber(tournamentId);
         if (pairable.isEmpty()) {
+            pairable = pairingService.prepareNextRound(tournamentId);
+        }
+        if (pairable.isEmpty()) {
             Alerts.info("Bracket", "No round is ready for pairing generation.");
+            refresh();
             return;
         }
         int targetRound = pairable.get();
@@ -117,14 +121,16 @@ public class KnockoutBracketController {
         task.setOnSucceeded(e -> {
             setBusy(false);
             statusLabel.setText("Published round " + targetRound);
+            Alerts.info("Pairings published",
+                    "Round " + targetRound + " pairings are ready. Enter results from the dashboard.");
             refresh();
         });
         task.setOnFailed(e -> {
             setBusy(false);
             Throwable error = task.getException();
             log.error("Failed to publish KO pairings", error);
-            String message = error instanceof DomainException ? error.getMessage() : error.getMessage();
-            Alerts.error("Pairings failed", message);
+            Alerts.error("Pairings failed", TaskExceptions.message(error));
+            generateButton.setDisable(false);
         });
         new Thread(task, "publish-ko-pairings").start();
     }
@@ -157,20 +163,23 @@ public class KnockoutBracketController {
                     for (Game g : games) {
                         String white = nameOf(g.getWhiteTournamentPlayerId(), names);
                         String black = g.getBlackTournamentPlayerId() == null
-                                ? "— BYE —"
+                                ? "— Bye —"
                                 : nameOf(g.getBlackTournamentPlayerId(), names);
                         rows.add(new BracketRow(
                                 round.getRoundNumber(),
                                 g.getBoardNumber(),
                                 white,
                                 black,
-                                g.getResult() == null ? "" : g.getResult().name(),
+                                DisplayLabels.gameResult(g.getResult()),
                                 winnerLabel(g, names)));
                     }
                 }
                 rows.sort(Comparator.comparingInt(BracketRow::round)
                         .thenComparingInt(BracketRow::board));
                 boolean canGenerate = pairingService.findPairableRoundNumber(tournamentId).isPresent();
+                if (!canGenerate) {
+                    canGenerate = pairingService.prepareNextRound(tournamentId).isPresent();
+                }
                 return new RefreshData(rows, canGenerate);
             }
         };
@@ -194,13 +203,13 @@ public class KnockoutBracketController {
     private static String winnerLabel(Game g, Map<Long, String> names) {
         GameResult result = g.getResult();
         if (result == null || result == GameResult.PENDING) {
-            return "(pending results — Phase 8)";
+            return "Pending";
         }
         return switch (result) {
             case BYE, WHITE_WIN -> nameOf(g.getWhiteTournamentPlayerId(), names);
             case BLACK_WIN -> nameOf(g.getBlackTournamentPlayerId(), names);
-            case DRAW -> "(draw — invalid for KO)";
-            case PENDING -> "(pending results — Phase 8)";
+            case DRAW -> "Draw (invalid)";
+            case PENDING -> "Pending";
         };
     }
 
@@ -210,7 +219,7 @@ public class KnockoutBracketController {
         for (TournamentPlayer tp : tps) {
             String name = playerDao.findById(tp.getPlayerId())
                     .map(Player::getName)
-                    .orElse("Player#" + tp.getPlayerId());
+                    .orElse("Unknown player");
             names.put(tp.getId(), name);
         }
         return names;
@@ -220,7 +229,7 @@ public class KnockoutBracketController {
         if (tpId == null) {
             return "—";
         }
-        return names.getOrDefault(tpId, "TP " + tpId);
+        return names.getOrDefault(tpId, "Unknown player");
     }
 
     private void setBusy(boolean busy) {

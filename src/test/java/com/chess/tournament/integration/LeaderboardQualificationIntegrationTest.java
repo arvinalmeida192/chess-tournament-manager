@@ -59,7 +59,7 @@ class LeaderboardQualificationIntegrationTest extends AbstractPostgresIntegratio
         leaderboardService = new LeaderboardService(
                 tournamentDao, tournamentPlayerDao, roundDao, gameDao, playerDao);
         qualificationService = new QualificationService(
-                tournamentDao, tournamentPlayerDao, leaderboardService, unitOfWork);
+                tournamentDao, tournamentPlayerDao, leaderboardService, unitOfWork, roundDao);
         tournamentService = new TournamentService(
                 tournamentDao, tournamentPlayerDao, roundDao, unitOfWork, qualificationService);
         enrollmentService = new EnrollmentService(
@@ -162,6 +162,8 @@ class LeaderboardQualificationIntegrationTest extends AbstractPostgresIntegratio
 
         assertThrows(ValidationException.class,
                 () -> tournamentService.finalizeTournament(tournament.getId()));
+        assertThrows(ValidationException.class,
+                () -> qualificationService.applyQualification(tournament.getId()));
     }
 
     @Test

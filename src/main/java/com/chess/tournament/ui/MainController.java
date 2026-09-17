@@ -91,8 +91,7 @@ public class MainController {
         task.setOnFailed(e -> {
             Throwable error = task.getException();
             log.error("Database connectivity check failed", error);
-            String message = "Database connection failed: " + error.getMessage()
-                    + " — check CTMS_DB_* env vars or config/application.properties";
+            String message = "Could not connect to the database. Check your configuration and try again.";
             statusLabel.setText(message);
             statusLabel.getStyleClass().add("status-error");
             if (showDialog) {

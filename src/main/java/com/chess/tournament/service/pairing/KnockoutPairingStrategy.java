@@ -3,7 +3,6 @@ package com.chess.tournament.service.pairing;
 import com.chess.tournament.domain.Game;
 import com.chess.tournament.domain.TournamentPlayer;
 import com.chess.tournament.domain.enums.GameResult;
-import com.chess.tournament.domain.enums.QualificationStatus;
 import com.chess.tournament.domain.enums.TournamentType;
 import com.chess.tournament.exception.ValidationException;
 
@@ -73,12 +72,9 @@ public final class KnockoutPairingStrategy implements PairingStrategy {
             Long winnerId = winnerTpId(game);
             TournamentPlayer winner = byId.get(winnerId);
             if (winner == null) {
-                throw new ValidationException("Winner TP not found: " + winnerId);
+                throw new ValidationException("Winner not found for board " + game.getBoardNumber());
             }
-            if (winner.getQualificationStatus() == QualificationStatus.ELIMINATED) {
-                throw new ValidationException(
-                        "Eliminated player cannot advance: TP " + winnerId);
-            }
+            // Advancement is based on game results. Mid-event qualification must not block winners.
             winners.add(winner);
         }
 
@@ -105,7 +101,7 @@ public final class KnockoutPairingStrategy implements PairingStrategy {
         return List.copyOf(proposals);
     }
 
-    static Long winnerTpId(Game game) {
+    public static Long winnerTpId(Game game) {
         GameResult result = game.getResult();
         if (result == null || result == GameResult.PENDING) {
             throw new ValidationException(

@@ -59,17 +59,6 @@ export CTMS_DB_PASSWORD=changeme
 mvn flyway:migrate
 ```
 
-## Optional demo data
-
-Load 8 players and a completed Swiss showcase tournament:
-
-```bash
-docker exec -i ctms-postgres psql -U ctms -d chess_tournament \
-  < src/main/resources/db/seed/demo.sql
-```
-
-The script is idempotent (skips if `Demo Swiss Showcase` already exists).
-
 ## Run the application
 
 ```bash
@@ -85,12 +74,12 @@ On success, the home screen shows **Connected to database**. Use the toolbar or 
 
 ### Host workflow
 
-1. Add players (or load demo seed).
+1. Add players.
 2. Create a tournament (Round Robin / Knockout / Swiss).
 3. Enroll players → **Start Tournament**.
 4. **Pairings** → generate & publish the current round.
-5. **Enter Results** → save → **Complete Round** (applies points + Elo).
-6. Repeat until all planned rounds are complete.
+5. **Enter Results** → save → **Complete Round**.
+6. Use **Proceed to Next Round** (or the dashboard) until all planned rounds are done.
 7. **Leaderboard** → optionally **Apply Qualification** → **Finalize**.
 
 Invalid actions stay disabled (or return clear validation errors).
@@ -99,7 +88,7 @@ Invalid actions stay disabled (or return clear validation errors).
 
 Layered desktop app (no Spring): **UI → Service → DAO → PostgreSQL**.
 
-See the layer diagram and pairing/rating design in [docs/SDD.md](docs/SDD.md). Requirements live in [docs/SRS.md](docs/SRS.md). Phase plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md).
+See the layer diagram and pairing/rating design in [docs/SDD.md](docs/SDD.md). Requirements live in [docs/SRS.md](docs/SRS.md).
 
 ## Tests
 
@@ -122,21 +111,7 @@ If Docker 29+ reports an API version mismatch, the project ships `src/test/resou
 | JavaFX fails to launch | Need a display (local desktop or X11); headless CI can still run `mvn test` |
 | Testcontainers API version error | Confirm `docker-java.properties` is on the test classpath; upgrade Testcontainers if needed |
 
-## Manual checklists
-
-- [E2E release checklist](docs/manual/E2E_CHECKLIST.md) (SRS §13.1)
-- [docs/manual/phase3-players.md](docs/manual/phase3-players.md)
-- [docs/manual/phase4-tournaments.md](docs/manual/phase4-tournaments.md)
-- [docs/manual/phase5-round-robin.md](docs/manual/phase5-round-robin.md)
-- [docs/manual/phase6-knockout.md](docs/manual/phase6-knockout.md)
-- [docs/manual/phase7-swiss.md](docs/manual/phase7-swiss.md)
-- [docs/manual/phase8-results.md](docs/manual/phase8-results.md)
-- [docs/manual/phase9-leaderboard.md](docs/manual/phase9-leaderboard.md)
-- [docs/manual/phase10-e2e.md](docs/manual/phase10-e2e.md)
-
 ## Documentation
 
 - [SRS](docs/SRS.md) — requirements
 - [SDD](docs/SDD.md) — design
-- [Development plan](docs/DEVELOPMENT_PLAN.md) — 10 phases
-- [context.md](context.md) — handoff status

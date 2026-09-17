@@ -627,7 +627,7 @@ See SDD.md Section 4 for physical schema. SRS logical model:
 
 ### 13.2 Test data
 
-Provide SQL seed script `seed/demo.sql` with 8 players and one completed Swiss tournament (Phase 10).
+Hosts create players and tournaments through the UI. No bundled demo seed is required.
 
 ---
 

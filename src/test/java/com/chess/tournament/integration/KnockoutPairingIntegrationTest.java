@@ -120,6 +120,29 @@ class KnockoutPairingIntegrationTest extends AbstractPostgresIntegrationTest {
         assertEquals(GameResult.PENDING, r2.get(0).getResult());
     }
 
+    @Test
+    void uiFlow_completeRoundThenFindPairableThenPublishRound2_recoversWronglyEliminatedWinners() {
+        Tournament tournament = startKo(4);
+        List<Game> r1 = pairingService.generateAndPublish(tournament.getId(), 1);
+        for (Game g : r1) {
+            g.setResult(GameResult.WHITE_WIN);
+            gameDao.updateResult(g);
+        }
+        Round round1 = roundDao.findByTournamentAndNumber(tournament.getId(), 1).orElseThrow();
+        roundDao.updateStatus(round1.getId(), RoundStatus.COMPLETED, round1.getPairedAt(), Instant.now());
+        advancementService.markLosers(r1);
+
+        // Simulate premature "Apply Qualification" wiping winners to ELIMINATED
+        for (TournamentPlayer tp : tournamentPlayerDao.findByTournament(tournament.getId())) {
+            tournamentPlayerDao.updateQualification(tp.getId(), QualificationStatus.ELIMINATED);
+        }
+
+        assertEquals(2, pairingService.prepareNextRound(tournament.getId()).orElseThrow());
+        List<Game> r2 = pairingService.generateAndPublish(tournament.getId(),
+                pairingService.findPairableRoundNumber(tournament.getId()).orElseThrow());
+        assertEquals(1, r2.size());
+    }
+
     private Tournament startKo(int n) {
         Tournament tournament = tournamentService.create(new CreateTournamentCommand(
                 "KO " + n, TournamentType.KNOCKOUT,

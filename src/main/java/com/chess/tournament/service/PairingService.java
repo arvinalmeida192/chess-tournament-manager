@@ -17,6 +17,7 @@ import com.chess.tournament.domain.enums.TournamentStatus;
 import com.chess.tournament.domain.enums.TournamentType;
 import com.chess.tournament.exception.NotFoundException;
 import com.chess.tournament.exception.ValidationException;
+import com.chess.tournament.service.pairing.KnockoutPairingStrategy;
 import com.chess.tournament.service.pairing.PairingContext;
 import com.chess.tournament.service.pairing.PairingProposal;
 import com.chess.tournament.service.pairing.PairingStrategy;
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -102,9 +104,7 @@ public final class PairingService {
                 proposals.size(), tournamentId, roundNumber);
     }
 
-    /**
-     * Swiss: +1 color_balance for white, -1 for black at publish time (Phase 7).
-     */
+    /** Swiss: +1 color_balance for white, -1 for black at publish time. */
     private void applySwissColorBalance(java.sql.Connection connection,
                                         List<TournamentPlayer> players,
                                         List<PairingProposal> proposals) {
@@ -157,6 +157,37 @@ public final class PairingService {
                 .min(Integer::compareTo);
     }
 
+    /**
+     * Ensures the next planned round exists after the latest COMPLETED round.
+     * Idempotent: returns an existing {@link RoundStatus#PENDING_PAIRINGS} round if already present.
+     *
+     * @return the round number ready for pairing generation, or empty if none
+     */
+    public Optional<Integer> prepareNextRound(long tournamentId) {
+        Optional<Integer> existing = findPairableRoundNumber(tournamentId);
+        if (existing.isPresent()) {
+            return existing;
+        }
+        Tournament tournament = requireTournament(tournamentId);
+        if (tournament.getStatus() != TournamentStatus.ACTIVE) {
+            return Optional.empty();
+        }
+        List<Round> rounds = roundDao.findByTournament(tournamentId);
+        Optional<Integer> latestCompleted = rounds.stream()
+                .filter(r -> r.getStatus() == RoundStatus.COMPLETED)
+                .map(Round::getRoundNumber)
+                .max(Integer::compareTo);
+        if (latestCompleted.isEmpty()) {
+            return Optional.empty();
+        }
+        int nextNumber = latestCompleted.get() + 1;
+        if (nextNumber > tournament.getRoundsPlanned()) {
+            return Optional.empty();
+        }
+        Round created = ensureRound(tournament, nextNumber);
+        return Optional.of(created.getRoundNumber());
+    }
+
     private LoadedContext loadAndValidate(long tournamentId, int roundNumber) {
         Tournament tournament = requireTournament(tournamentId);
         if (tournament.getStatus() != TournamentStatus.ACTIVE) {
@@ -190,12 +221,39 @@ public final class PairingService {
             throw new ValidationException("No players enrolled");
         }
 
+        if (tournament.getType() == TournamentType.KNOCKOUT && roundNumber > 1) {
+            restoreKnockoutWinners(previousRoundGames, players);
+        }
+
         Set<LongPair> previousPairings = gameDao.findPreviousPairings(tournamentId);
         Set<Long> previousByeRecipients = collectByeRecipients(tournamentId);
         PairingContext context = new PairingContext(
                 tournament, roundNumber, players, previousPairings, List.of(),
                 previousRoundGames, previousByeRecipients);
         return new LoadedContext(tournament, round, players, context);
+    }
+
+    /**
+     * If qualification was applied early, winners may be marked ELIMINATED. Restore them
+     * to PENDING so knockout advancement can continue from game results.
+     */
+    private void restoreKnockoutWinners(List<Game> previousRoundGames, List<TournamentPlayer> players) {
+        Map<Long, TournamentPlayer> byId = players.stream()
+                .collect(Collectors.toMap(TournamentPlayer::getId, tp -> tp));
+        for (Game game : previousRoundGames) {
+            Long winnerId = KnockoutPairingStrategy.winnerTpId(game);
+            TournamentPlayer winner = byId.get(winnerId);
+            if (winner == null) {
+                continue;
+            }
+            if (winner.getQualificationStatus() == QualificationStatus.ELIMINATED
+                    || winner.getQualificationStatus() == QualificationStatus.QUALIFIED) {
+                winner.setQualificationStatus(QualificationStatus.PENDING);
+                tournamentPlayerDao.updateQualification(winner.getId(), QualificationStatus.PENDING);
+                log.info("Restored knockout winner {} to PENDING for next-round pairing",
+                        winner.getId());
+            }
+        }
     }
 
     private Set<Long> collectByeRecipients(long tournamentId) {
@@ -255,10 +313,6 @@ public final class PairingService {
         Set<Long> enrolled = players.stream()
                 .map(TournamentPlayer::getId)
                 .collect(Collectors.toSet());
-        Set<Long> active = players.stream()
-                .filter(tp -> tp.getQualificationStatus() != QualificationStatus.ELIMINATED)
-                .map(TournamentPlayer::getId)
-                .collect(Collectors.toSet());
 
         Set<Long> seen = new HashSet<>();
         Set<Integer> boards = new HashSet<>();
@@ -284,13 +338,7 @@ public final class PairingService {
                             "Knockout round 1 must include every enrolled player exactly once");
                 }
             } else {
-                // Subsequent KO rounds: only remaining winners; no eliminated players
-                for (Long id : seen) {
-                    if (!active.contains(id)) {
-                        throw new ValidationException(
-                                "Eliminated player cannot be paired: " + id);
-                    }
-                }
+                // Subsequent KO rounds: strategy already selected winners from prior results
                 if (byeCount > 0) {
                     throw new ValidationException(
                             "Knockout rounds after round 1 should not have byes");

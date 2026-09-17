@@ -8,35 +8,33 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.chess.tournament.ui.tournament.ResultsController"
-            prefWidth="780" prefHeight="520">
+            prefWidth="800" prefHeight="540"
+            styleClass="dialog-root">
     <top>
-        <VBox spacing="6">
+        <VBox spacing="6" styleClass="page-header">
             <padding>
-                <Insets top="12" right="12" bottom="8" left="12"/>
+                <Insets top="16" right="16" bottom="8" left="16"/>
             </padding>
-            <Label fx:id="titleLabel" text="Results">
-                <font>
-                    <Font name="System Bold" size="18"/>
-                </font>
-            </Label>
-            <Label fx:id="roundLabel"/>
+            <Label fx:id="titleLabel" text="Results" styleClass="section-title"/>
+            <Label fx:id="roundLabel" styleClass="muted-label"/>
+            <Label text="Double-click the Result cell to choose an outcome, then save or complete the round."
+                   styleClass="hint-label" wrapText="true"/>
         </VBox>
     </top>
     <center>
         <VBox spacing="8">
             <padding>
-                <Insets top="4" right="12" bottom="8" left="12"/>
+                <Insets top="4" right="16" bottom="8" left="16"/>
             </padding>
             <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
                 <columns>
                     <TableColumn fx:id="boardColumn" text="Board" prefWidth="70"/>
-                    <TableColumn fx:id="whiteColumn" text="White" prefWidth="200"/>
-                    <TableColumn fx:id="blackColumn" text="Black" prefWidth="200"/>
+                    <TableColumn fx:id="whiteColumn" text="White" prefWidth="210"/>
+                    <TableColumn fx:id="blackColumn" text="Black" prefWidth="210"/>
                     <TableColumn fx:id="resultColumn" text="Result" prefWidth="140"/>
                 </columns>
             </TableView>
@@ -45,13 +43,16 @@
     <bottom>
         <HBox spacing="8" alignment="CENTER_RIGHT">
             <padding>
-                <Insets top="0" right="12" bottom="12" left="12"/>
+                <Insets top="0" right="16" bottom="16" left="16"/>
             </padding>
-            <Label fx:id="statusLabel" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            <Label fx:id="statusLabel" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="muted-label"/>
             <Button fx:id="saveButton" text="Save All" onAction="#onSaveAll"/>
-            <Button fx:id="completeButton" text="Complete Round" onAction="#onCompleteRound"/>
-            <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh"/>
-            <Button text="Close" onAction="#onClose"/>
+            <Button fx:id="completeButton" text="Complete Round" onAction="#onCompleteRound"
+                    styleClass="primary-button"/>
+            <Button fx:id="nextRoundButton" text="Proceed to Next Round" onAction="#onNextRound"
+                    styleClass="primary-button" disable="true"/>
+            <Button fx:id="refreshButton" text="Refresh" onAction="#onRefresh" styleClass="secondary-button"/>
+            <Button text="Close" onAction="#onClose" styleClass="secondary-button"/>
         </HBox>
     </bottom>
 </BorderPane>
